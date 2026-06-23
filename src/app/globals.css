@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #13213c;
+  background: #102a5f;
+}
+
+html,
+body {
+  height: 100vh;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  background:
+    radial-gradient(circle at 20% 10%, rgba(214, 168, 59, 0.16), transparent 28%),
+    linear-gradient(135deg, #102a5f 0%, #173b7a 48%, #0d203f 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.paper-surface {
+  background:
+    linear-gradient(rgba(248, 241, 223, 0.92), rgba(248, 241, 223, 0.92)),
+    repeating-linear-gradient(0deg, rgba(19, 33, 60, 0.04) 0 1px, transparent 1px 8px);
+}
+
+.stamp-ring {
+  border: 2px dashed currentColor;
+  border-radius: 999px;
+  transform: rotate(-8deg);
+}
+
+.scroll-area {
+  min-height: 0;
+  overflow: auto;
+}
+
+.scroll-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scroll-area::-webkit-scrollbar-thumb {
+  background: rgba(31, 79, 154, 0.32);
+  border-radius: 999px;
+}
