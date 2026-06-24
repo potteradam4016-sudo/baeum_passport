@@ -35,6 +35,25 @@ public class User {
     @Column(name = "birth_date")
     private String birthDate;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", insertable = false, updatable = false)
     private String createdAt;
+
+    public User(
+            String username,
+            String password,
+            String name,
+            Integer grade,
+            Integer classNum,
+            Integer studentNum,
+            String gender,
+            String birthDate) {
+        this.username = username;
+        this.password = password;
+        this.name = name;
+        this.grade = grade;
+        this.classNum = classNum;
+        this.studentNum = studentNum;
+        this.gender = gender;
+        this.birthDate = birthDate;
+    }
 }
