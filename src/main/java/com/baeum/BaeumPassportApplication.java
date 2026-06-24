@@ -1,4 +1,4 @@
-package com.baeum.passport;
+package com.baeum;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
