@@ -1,0 +1,289 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #13213c;
+  background: #102a5f;
+}
+
+html,
+body {
+  height: 100vh;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  background:
+    radial-gradient(circle at 20% 10%, rgba(214, 168, 59, 0.16), transparent 28%),
+    linear-gradient(135deg, #102a5f 0%, #173b7a 48%, #0d203f 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.paper-surface {
+  background:
+    linear-gradient(rgba(248, 241, 223, 0.92), rgba(248, 241, 223, 0.92)),
+    repeating-linear-gradient(0deg, rgba(19, 33, 60, 0.04) 0 1px, transparent 1px 8px);
+}
+
+.stamp-ring {
+  border: 2px dashed currentColor;
+  border-radius: 999px;
+  transform: rotate(-8deg);
+}
+
+.scroll-area {
+  min-height: 0;
+  overflow: auto;
+}
+
+.scroll-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scroll-area::-webkit-scrollbar-thumb {
+  background: rgba(31, 79, 154, 0.32);
+  border-radius: 999px;
+}
+
+.continent-hotspot {
+  cursor: pointer;
+  outline: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 180ms ease, filter 180ms ease;
+}
+
+.continent-hotspot:hover,
+.continent-hotspot:focus-visible {
+  transform: scale(1.03);
+}
+
+.continent-area-shape {
+  fill: rgba(59, 130, 246, 0.16);
+  stroke: rgba(255, 255, 255, 0.48);
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-width: 2.2;
+  vector-effect: non-scaling-stroke;
+  transition:
+    fill 180ms ease,
+    stroke 180ms ease,
+    stroke-width 180ms ease,
+    filter 180ms ease;
+}
+
+.continent-hotspot:hover .continent-area-shape,
+.continent-hotspot:focus-visible .continent-area-shape {
+  fill: rgba(59, 130, 246, 0.35);
+  stroke: rgba(30, 64, 175, 0.5);
+  stroke-width: 2.6;
+  filter: drop-shadow(0 10px 18px rgba(30, 64, 175, 0.2));
+}
+
+.continent-hotspot.is-active .continent-area-shape {
+  fill: rgba(30, 64, 175, 0.38);
+  stroke: rgba(30, 64, 175, 0.82);
+  stroke-width: 3;
+  filter:
+    drop-shadow(0 0 8px rgba(255, 255, 255, 0.64))
+    drop-shadow(0 14px 24px rgba(30, 64, 175, 0.32));
+}
+
+.passport-entry {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(214, 168, 59, 0.16), transparent 34%),
+    linear-gradient(rgba(248, 241, 223, 0.92), rgba(248, 241, 223, 0.92)),
+    repeating-linear-gradient(0deg, rgba(19, 33, 60, 0.04) 0 1px, transparent 1px 8px);
+}
+
+.passport-stage {
+  display: flex;
+  height: min(720px, calc(100vh - 32px));
+  width: min(1040px, calc(100vw - 32px));
+  align-items: center;
+  justify-content: center;
+}
+
+.passport-cover-closed {
+  position: relative;
+  height: min(620px, calc(100vh - 42px));
+  width: min(430px, calc(100vw - 34px));
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(214, 168, 59, 0.62);
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.1), transparent 10%, transparent 88%, rgba(0, 0, 0, 0.2)),
+    radial-gradient(circle at 26% 18%, rgba(255, 255, 255, 0.14), transparent 22%),
+    linear-gradient(145deg, #173b7a, #102a5f 48%, #0b1d3b);
+  box-shadow:
+    0 34px 80px rgba(16, 42, 95, 0.36),
+    inset 16px 0 20px rgba(255, 255, 255, 0.08),
+    inset -16px 0 28px rgba(0, 0, 0, 0.28);
+  transition: transform 260ms ease-in-out;
+}
+
+.passport-cover-closed.is-soft-transitioning {
+  transform: scale(1.02);
+}
+
+.passport-cover-closed::before {
+  position: absolute;
+  inset: 0 auto 0 34px;
+  width: 2px;
+  content: "";
+  background: rgba(214, 168, 59, 0.35);
+  box-shadow: 8px 0 18px rgba(0, 0, 0, 0.24);
+}
+
+.passport-cover-border {
+  position: absolute;
+  inset: 22px;
+  border: 1px solid rgba(214, 168, 59, 0.58);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.passport-cover-shine {
+  position: absolute;
+  inset: -40% auto -20% 18%;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.11), transparent);
+  transform: rotate(12deg);
+}
+
+.passport-cover-actions {
+  transition:
+    opacity 240ms ease-in-out,
+    transform 240ms ease-in-out;
+}
+
+.passport-cover-closed.is-soft-transitioning .passport-cover-actions {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.passport-book-open {
+  position: relative;
+  display: grid;
+  height: min(670px, calc(100vh - 34px));
+  width: min(1000px, calc(100vw - 32px));
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  overflow: visible;
+  border-radius: 18px;
+  filter: drop-shadow(0 34px 70px rgba(16, 42, 95, 0.3));
+}
+
+.passport-soft-enter {
+  animation: passport-soft-card-enter 360ms ease-in-out both;
+}
+
+.passport-book-open::before {
+  position: absolute;
+  inset: 10px 50% 10px auto;
+  z-index: 4;
+  width: 22px;
+  content: "";
+  background: linear-gradient(90deg, transparent, rgba(16, 42, 95, 0.28), transparent);
+  transform: translateX(50%);
+  pointer-events: none;
+}
+
+.passport-page {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(31, 79, 154, 0.16);
+  background:
+    radial-gradient(circle at 50% 38%, rgba(31, 79, 154, 0.08), transparent 25%),
+    linear-gradient(rgba(248, 241, 223, 0.92), rgba(248, 241, 223, 0.92)),
+    repeating-linear-gradient(0deg, rgba(19, 33, 60, 0.04) 0 1px, transparent 1px 8px);
+  padding: clamp(18px, 3vw, 34px);
+}
+
+.passport-page-left {
+  border-radius: 18px 0 0 18px;
+}
+
+.passport-page-right {
+  border-radius: 0 18px 18px 0;
+}
+
+.passport-map-watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(31, 79, 154, 0.08);
+  pointer-events: none;
+}
+
+.passport-form {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.passport-open-content {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  opacity: 1;
+  animation: passport-soft-form-enter 320ms ease-in-out both;
+}
+
+@keyframes passport-soft-card-enter {
+  0% {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes passport-soft-form-enter {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 760px) {
+  .passport-book-open {
+    height: min(720px, calc(100vh - 28px));
+    grid-template-columns: 1fr;
+  }
+
+  .passport-page-left {
+    display: none;
+  }
+
+  .passport-page-right {
+    border-radius: 18px;
+  }
+
+}

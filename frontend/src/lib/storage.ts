@@ -4,6 +4,8 @@ export type User = {
   grade?: string;
   classNumber?: string;
   studentNumber?: string;
+  birthDate?: string;
+  gender?: string;
 };
 
 export type TravelCountryInfo = {
