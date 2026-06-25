@@ -21,23 +21,14 @@ export function PassportCover({ onSelect, isTransitioning = false }: PassportCov
           <div className="mb-8 flex h-24 w-24 items-center justify-center rounded-full border-4 border-double border-passport-gold text-passport-gold shadow-inner">
             <Plane size={42} />
           </div>
-          <p className="text-sm font-bold uppercase tracking-[0.28em] text-passport-gold/85">
+          <h1 className="mt-3 text-4xl font-black text-passport-gold sm:text-5xl">배움여권</h1>
+          <p className="mt-8 text-sm font-bold uppercase tracking-[0.28em] text-passport-gold/85">
             Learning Passport
           </p>
-          <h1 className="mt-3 text-4xl font-black text-passport-gold sm:text-5xl">배움여권</h1>
           <div className="mt-8 h-px w-44 bg-passport-gold/55" />
         </div>
 
         <div className="passport-cover-actions w-full">
-          <div className="mb-5 grid grid-cols-3 gap-3 text-passport-gold/75">
-            {["KOR", "JPN", "AUS"].map((code) => (
-              <div key={code} className="stamp-ring px-2 py-3">
-                <p className="text-[10px] font-black">{code}</p>
-                <p className="text-[9px] font-bold">VISA</p>
-              </div>
-            ))}
-          </div>
-
           <div className="grid gap-3 sm:grid-cols-2">
             <button
               type="button"

@@ -1,7 +1,6 @@
 "use client";
 
-import { ArrowLeft, Stamp } from "lucide-react";
-import Link from "next/link";
+import { Stamp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { representativeCountries } from "@/lib/countries";
@@ -22,10 +21,6 @@ export default function StampPage() {
             <p className="text-sm font-bold text-passport-stamp">Visa Stamp Collection</p>
             <h1 className="text-2xl font-black text-passport-navy lg:text-3xl">사증 페이지</h1>
           </div>
-          <Link href="/worldmap" className="inline-flex h-10 items-center gap-2 rounded-md border border-passport-blue/25 px-3 text-sm font-bold text-passport-blue">
-            <ArrowLeft size={17} />
-            세계지도
-          </Link>
         </div>
         <div className="scroll-area rounded-lg border border-passport-blue/15 bg-white/78 p-5">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

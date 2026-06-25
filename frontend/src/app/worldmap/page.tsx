@@ -1,149 +1,275 @@
 "use client";
 
-import { CheckCircle2, Plus, Stamp } from "lucide-react";
+import { ArrowLeft, BookOpen, Globe2, Info, MapPinned, Stamp } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { DashboardShell } from "@/components/DashboardShell";
-import { Sidebar } from "@/components/Sidebar";
+import { useMemo, useState } from "react";
 import { WorldMapGraphic } from "@/components/WorldMapGraphic";
-import { continents, countryPath, representativeCountries, type ContinentKey } from "@/lib/countries";
-import { addUnique, loadState, saveState, type PassportState } from "@/lib/storage";
+import { continents, countryPath, representativeCountries, type ContinentKey, type RepresentativeCountry } from "@/lib/countries";
+
+const continentImages: Record<ContinentKey, string> = {
+  asia: "/images/asia.png",
+  europe: "/images/europe.png",
+  africa: "/images/africa.png",
+  northAmerica: "/images/north_america.png",
+  southAmerica: "/images/south_america.png",
+  oceania: "/images/oseania.png",
+};
+
+const countryMapMarkers: Record<string, { left: string; top: string }> = {
+  한국: { left: "60%", top: "55%" },
+  일본: { left: "68%", top: "52%" },
+  중국: { left: "54%", top: "60%" },
+  영국: { left: "34%", top: "47%" },
+  프랑스: { left: "38%", top: "65%" },
+  독일: { left: "48%", top: "56%" },
+  이집트: { left: "58%", top: "23%" },
+  미국: { left: "45%", top: "65%" },
+  멕시코: { left: "45%", top: "83%" },
+  브라질: { left: "58%", top: "33%" },
+  호주: { left: "47%", top: "50%" },
+};
 
 export default function WorldMapPage() {
-  const [selectedContinent, setSelectedContinent] = useState<ContinentKey>("asia");
-  const [activeTab, setActiveTab] = useState<"travel" | "visited">("travel");
-  const [state, setState] = useState<PassportState | null>(null);
-  const [newCountry, setNewCountry] = useState("");
+  const [selectedContinent, setSelectedContinent] = useState<ContinentKey | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<RepresentativeCountry | null>(null);
 
-  useEffect(() => {
-    setState(loadState());
-  }, []);
+  const continent = selectedContinent ? continents[selectedContinent] : null;
+  const continentCountries = useMemo(() => {
+    if (!selectedContinent) return [];
+    return representativeCountries.filter((country) => country.continent === selectedContinent);
+  }, [selectedContinent]);
 
-  const continent = continents[selectedContinent];
-  const visitedCountries = useMemo(() => {
-    return [...representativeCountries.map((country) => country.name), ...(state?.addedCountries ?? [])];
-  }, [state?.addedCountries]);
+  const bookmarkCountry = selectedCountry ?? continentCountries[0] ?? representativeCountries[0];
 
-  function addCountry() {
-    const trimmed = newCountry.trim();
-    if (!trimmed || !state) return;
-    const next = { ...state, addedCountries: addUnique(state.addedCountries, trimmed) };
-    saveState(next);
-    setState(next);
-    setNewCountry("");
-    setActiveTab("visited");
+  function selectContinent(continentKey: ContinentKey) {
+    setSelectedContinent(continentKey);
+    setSelectedCountry(null);
+  }
+
+  function resetMapSelection() {
+    setSelectedContinent(null);
+    setSelectedCountry(null);
   }
 
   return (
-    <DashboardShell>
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-      <section className="flex min-w-0 flex-1 flex-col gap-4 overflow-hidden p-4 lg:p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-bold text-passport-stamp">World Dashboard</p>
-            <h1 className="text-2xl font-black text-passport-navy lg:text-3xl">세계지도</h1>
+    <main className="passport-entry paper-surface flex h-screen items-center justify-center overflow-hidden p-4 sm:p-6">
+      <section className="passport-book-open passport-soft-enter passport-explorer-book" aria-label="세계 탐험 배움여권">
+        <PassportBookmarks country={bookmarkCountry} />
+
+        <div className="passport-page passport-page-left">
+          <div className="passport-open-content gap-4">
+            <header className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-passport-stamp">World Map</p>
+                <h1 className="mt-2 text-3xl font-black text-passport-navy">세계지도</h1>
+              </div>
+              {selectedContinent ? (
+                <button
+                  type="button"
+                  onClick={resetMapSelection}
+                  className="inline-flex h-10 items-center gap-2 rounded-md border border-passport-blue/20 px-3 text-sm font-bold text-passport-blue transition hover:bg-passport-blue/10"
+                >
+                  <ArrowLeft size={16} />
+                  세계지도
+                </button>
+              ) : (
+                <Globe2 className="text-passport-blue/35" size={34} />
+              )}
+            </header>
+
+            <div className="min-h-0 flex-1">
+              {selectedContinent ? (
+                <ContinentExplorer
+                  continentKey={selectedContinent}
+                  countries={continentCountries}
+                  selectedCountry={selectedCountry}
+                  onCountrySelect={setSelectedCountry}
+                />
+              ) : (
+                <WorldMapGraphic selected={null} onSelect={selectContinent} />
+              )}
+            </div>
+
+            {continent ? (
+              <section className="tab-fade grid gap-4">
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <InfoTile label="인구" value={continent.population} compact />
+                  <InfoTile label="면적" value={continent.area} compact />
+                  <InfoTile label="국가" value={`${continent.countryCount}개`} compact />
+                </div>
+                <div>
+                  <div className="mb-2 flex items-baseline gap-3">
+                    <h2 className="text-lg font-black text-passport-navy">{continent.name}</h2>
+                    <p className="text-xs font-black text-passport-blue">대표 국가</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    {continentCountries.map((country) => (
+                      <button
+                        key={country.name}
+                        type="button"
+                        onClick={() => setSelectedCountry(country)}
+                        className={`group rounded-md border bg-white/72 p-2 text-center transition hover:-translate-y-0.5 hover:border-passport-gold hover:shadow ${
+                          selectedCountry?.name === country.name ? "border-passport-gold shadow" : "border-passport-blue/15"
+                        }`}
+                      >
+                        <span className="relative mx-auto block h-10 w-16 overflow-hidden rounded border border-passport-blue/10">
+                          <Image src={country.flagImage} alt={`${country.name} 국기`} fill sizes="64px" className="object-cover" />
+                        </span>
+                        <span className="mt-2 block text-sm font-black text-passport-navy">{country.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            ) : (
+              <p className="rounded-lg border border-passport-blue/15 bg-white/55 p-4 text-sm font-bold leading-6 text-passport-ink/70">
+                지도의 대륙을 선택하면 확대 지도와 대표 국가가 여권에 기록됩니다.
+              </p>
+            )}
           </div>
-          <Link href="/stamp" className="inline-flex h-10 items-center gap-2 rounded-md bg-passport-stamp px-4 text-sm font-bold text-white">
-            <Stamp size={17} />
-            사증 보기
-          </Link>
         </div>
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[1.35fr_0.85fr]">
-          <div className="flex min-h-0 flex-col rounded-lg border border-passport-blue/15 bg-white/70 p-3">
-            <div className="min-h-0 flex-1">
-              <WorldMapGraphic selected={selectedContinent} onSelect={setSelectedContinent} />
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-2 md:hidden">
-              <button onClick={() => setActiveTab("travel")} className={`h-10 rounded-md text-sm font-bold ${activeTab === "travel" ? "bg-passport-blue text-white" : "bg-white text-passport-blue"}`}>
-                세계 여행
-              </button>
-              <button onClick={() => setActiveTab("visited")} className={`h-10 rounded-md text-sm font-bold ${activeTab === "visited" ? "bg-passport-blue text-white" : "bg-white text-passport-blue"}`}>
-                방문 국가
-              </button>
-            </div>
+        <div className="passport-page passport-page-right">
+          <div className="passport-open-content">
+            {selectedCountry ? <CountryDetail country={selectedCountry} /> : <EmptyCountryState selectedContinent={selectedContinent} />}
           </div>
-
-          <aside className="grid min-h-0 gap-4 overflow-hidden lg:grid-rows-[auto_1fr]">
-            <section className="rounded-lg border border-passport-blue/15 bg-white/78 p-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-black text-passport-navy">{continent.name}</h2>
-                <span className="rounded-md px-3 py-1 text-sm font-bold text-white" style={{ backgroundColor: continent.color }}>
-                  대륙 정보
-                </span>
-              </div>
-              <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                <Info label="인구" value={continent.population} />
-                <Info label="면적" value={continent.area} />
-                <Info label="국가" value={`${continent.countryCount}개`} />
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {continent.countries.map((country) => (
-                  <span key={country} className="rounded-full border border-passport-blue/20 bg-passport-paper px-3 py-1 text-sm font-bold">
-                    {country}
-                  </span>
-                ))}
-              </div>
-            </section>
-
-            <section className="flex min-h-0 flex-col rounded-lg border border-passport-blue/15 bg-white/78 p-4">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 className="text-xl font-black text-passport-navy">{activeTab === "travel" ? "세계여행" : "방문국가"}</h2>
-                {activeTab === "visited" && (
-                  <div className="flex min-w-0 gap-2">
-                    <input
-                      value={newCountry}
-                      onChange={(event) => setNewCountry(event.target.value)}
-                      className="h-9 min-w-0 rounded-md border border-passport-blue/20 px-3 text-sm outline-none focus:border-passport-blue"
-                      placeholder="국가 추가"
-                    />
-                    <button onClick={addCountry} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-passport-blue text-white" aria-label="국가 추가">
-                      <Plus size={18} />
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div className="scroll-area grid gap-2 pr-1">
-                {activeTab === "travel"
-                  ? representativeCountries.map((country) => (
-                      <Link key={country.name} href={`/immi/${countryPath(country.name)}`} className="flex items-center justify-between rounded-md border border-passport-blue/15 bg-passport-paper p-3 transition hover:border-passport-blue">
-                        <span className="flex items-center gap-3">
-                          <span className="text-2xl">{country.flag}</span>
-                          <span>
-                            <b>{country.name}</b>
-                            <span className="ml-2 text-sm text-passport-ink/60">{continents[country.continent].name}</span>
-                          </span>
-                        </span>
-                        {state?.immigrationCompleted.includes(country.name) && <CheckCircle2 className="text-passport-teal" size={20} />}
-                      </Link>
-                    ))
-                  : visitedCountries.map((countryName) => {
-                      const isRepresentative = representativeCountries.some((country) => country.name === countryName);
-                      const href = isRepresentative ? `/workbook/${countryPath(countryName)}` : `/travel-info/${countryPath(countryName)}`;
-                      return (
-                        <Link key={countryName} href={href} className="flex items-center justify-between rounded-md border border-passport-blue/15 bg-passport-paper p-3 transition hover:border-passport-blue">
-                          <span>
-                            <b>{countryName}</b>
-                            <span className="ml-2 text-xs font-bold text-passport-stamp">{isRepresentative ? "대표국가" : "추가국가"}</span>
-                          </span>
-                          {state?.immigrationCompleted.includes(countryName) && <CheckCircle2 className="text-passport-teal" size={20} />}
-                        </Link>
-                      );
-                    })}
-              </div>
-            </section>
-          </aside>
         </div>
       </section>
-    </DashboardShell>
+    </main>
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function PassportBookmarks({ country }: { country: RepresentativeCountry }) {
+  const encodedCountry = countryPath(country.name);
+  const items = [
+    { label: "세계지도", href: "/worldmap", active: true, icon: Globe2 },
+    { label: "사증", href: "/stamp", active: false, icon: Stamp },
+    { label: "학습지", href: `/workbook/${encodedCountry}`, active: false, icon: BookOpen },
+    { label: "여행정보", href: `/travel-info/${encodedCountry}`, active: false, icon: MapPinned },
+  ];
+
   return (
-    <div className="rounded-md bg-passport-blue/10 p-3">
-      <p className="text-xs font-bold text-passport-blue">{label}</p>
+    <nav className="passport-bookmarks" aria-label="여권 책갈피">
+      {items.map((item) => {
+        const Icon = item.icon;
+
+        return (
+          <Link key={item.label} href={item.href} className={`passport-bookmark ${item.active ? "is-active" : ""}`}>
+            <Icon size={15} />
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function ContinentExplorer({
+  continentKey,
+  countries,
+  selectedCountry,
+  onCountrySelect,
+}: {
+  continentKey: ContinentKey;
+  countries: RepresentativeCountry[];
+  selectedCountry: RepresentativeCountry | null;
+  onCountrySelect: (country: RepresentativeCountry) => void;
+}) {
+  const imageSrc = continentImages[continentKey];
+
+  return (
+    <div className="relative aspect-[3/2] w-full overflow-hidden rounded-lg border border-passport-blue/15 bg-[#dbe9ed]">
+      <Image
+        src={imageSrc}
+        alt={`${continents[continentKey].name} 확대 지도`}
+        fill
+        sizes="(min-width: 1024px) 420px, 90vw"
+        className="object-contain"
+        priority
+      />
+      <div className="absolute inset-0 bg-passport-blue/5" />
+      {countries.map((country) => {
+        const marker = countryMapMarkers[country.name];
+        if (!marker) return null;
+        const active = selectedCountry?.name === country.name;
+
+        return (
+          <button
+            key={country.name}
+            type="button"
+            onClick={() => onCountrySelect(country)}
+            className={`absolute z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full border bg-white/90 px-2 py-1 text-[10px] font-black text-passport-navy shadow transition hover:scale-105 hover:border-passport-gold hover:shadow-md ${
+              active ? "border-passport-gold ring-2 ring-passport-gold/70" : "border-white"
+            }`}
+            style={{ left: marker.left, top: marker.top }}
+          >
+            <span className="h-3 w-3 rounded-full border border-white shadow" style={{ backgroundColor: country.color }} />
+            {country.name}
+          </button>
+        );
+      })}
+      <div className="absolute left-3 top-3 rounded-md bg-passport-navy/82 px-3 py-2 text-sm font-black text-white shadow">
+        {continents[continentKey].name}
+      </div>
+    </div>
+  );
+}
+
+function CountryDetail({ country }: { country: RepresentativeCountry }) {
+  const isComparisonBase = country.name === "한국";
+
+  return (
+    <section key={country.name} className="tab-fade flex min-h-0 flex-1 flex-col">
+      <div className="mb-5 flex items-center gap-4">
+        <div className="relative h-20 w-32 overflow-hidden rounded-md border border-passport-blue/15 shadow">
+          <Image src={country.flagImage} alt={`${country.name} 국기`} fill sizes="128px" className="object-cover" />
+        </div>
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-passport-stamp">Country Record</p>
+          <h2 className="mt-2 text-3xl font-black text-passport-navy">{country.name}</h2>
+        </div>
+      </div>
+
+      <div className="scroll-area min-h-0 flex-1 pr-1">
+        <p className="rounded-lg border border-passport-blue/15 bg-white/62 p-4 leading-7 text-passport-ink/78">{country.overview}</p>
+
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <InfoTile label="수도" value={country.capital} />
+          <InfoTile label="언어" value={country.language} />
+          <InfoTile label="통화" value={country.currency} />
+          <InfoTile label="인구" value={country.population} note={isComparisonBase ? undefined : country.populationComparison} />
+          <InfoTile label="면적" value={country.area} note={isComparisonBase ? undefined : country.areaComparison} />
+          <InfoTile label="위치" value={country.mapNote} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function EmptyCountryState({ selectedContinent }: { selectedContinent: ContinentKey | null }) {
+  return (
+    <section className="flex min-h-0 flex-1 flex-col justify-between">
+      <div>
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-passport-stamp">Explorer Guide</p>
+        <h2 className="mt-3 text-3xl font-black text-passport-navy">{selectedContinent ? "대표 국가를 선택하세요" : "대륙을 선택하세요"}</h2>
+        <p className="mt-4 leading-7 text-passport-ink/72">
+          세계지도에서 대륙을 고른 뒤, 왼쪽 페이지의 국기를 눌러 국가 정보를 살펴보세요.
+        </p>
+      </div>
+      <div className="passport-map-watermark">
+        <Info size={150} />
+      </div>
+    </section>
+  );
+}
+
+function InfoTile({ label, value, note, compact = false }: { label: string; value: string; note?: string; compact?: boolean }) {
+  return (
+    <div className={`rounded-md bg-passport-blue/10 ${compact ? "px-3 py-2" : "p-3"}`}>
+      <p className="text-xs font-black text-passport-blue">{label}</p>
       <p className="mt-1 text-sm font-black text-passport-ink">{value}</p>
+      {note && <p className="mt-1 text-xs font-bold text-passport-stamp">{note}</p>}
     </div>
   );
 }
