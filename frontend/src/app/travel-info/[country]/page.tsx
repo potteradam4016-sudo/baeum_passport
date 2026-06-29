@@ -3,9 +3,11 @@
 import { BookOpen, ChevronLeft, Globe2, ImageIcon, MapPinned, Plane, Save, Stamp, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { type ChangeEvent, useEffect, useState } from "react";
+import { LogoutBookmark } from "@/components/passport/LogoutBookmark";
 import { findCountry } from "@/lib/countries";
 import { createTravelInfo, deleteTravelInfo as deleteTravelInfoApi, getTravelInfo, updateTravelInfo } from "@/lib/api/travel";
+import { uploadFlagImage, uploadMapImage } from "@/lib/api/upload";
 import type { TravelCountryInfo } from "@/lib/storage";
 
 const emptyInfo: TravelCountryInfo = {
@@ -86,6 +88,7 @@ export default function TravelInfoPage({ params }: { params: { country: string }
     <main className="passport-entry paper-surface flex h-screen items-center justify-center overflow-hidden p-4 sm:p-6">
       <section className="passport-book-open passport-soft-enter passport-explorer-book workbook-book" aria-label={`${countryName} 여행정보`}>
         <PassportBookmarks />
+        <LogoutBookmark />
 
         <div className="passport-page passport-page-left">
           <div className="passport-open-content gap-4">
@@ -101,8 +104,8 @@ export default function TravelInfoPage({ params }: { params: { country: string }
             </div>
             <section className="grid min-h-0 flex-1 grid-rows-[1fr_auto_auto_auto] gap-3">
               <div className="grid min-h-0 grid-cols-2 gap-3">
-                <ImageUrlField label="국기 또는 대표 이미지" value={info.flagImage} onChange={(value) => update("flagImage", value)} placeholder="이미지 URL" />
-                <ImageUrlField label="지도 또는 위치 이미지" value={info.mapImage} onChange={(value) => update("mapImage", value)} placeholder="이미지 URL" />
+                <ImageUrlField label="국기 또는 대표 이미지" value={info.flagImage} onChange={(value) => update("flagImage", value)} uploadType="flag" />
+                <ImageUrlField label="지도 또는 위치 이미지" value={info.mapImage} onChange={(value) => update("mapImage", value)} uploadType="map" />
               </div>
               <TextArea
                 label="여행 목적"
@@ -268,24 +271,48 @@ function ImageUrlField({
   label,
   value,
   onChange,
-  placeholder,
+  uploadType,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
-  placeholder: string;
+  uploadType: "flag" | "map";
 }) {
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      setUploadError("");
+      const imageUrl = uploadType === "flag" ? await uploadFlagImage(file) : await uploadMapImage(file);
+      onChange(imageUrl);
+    } catch (error) {
+      console.error("Failed to upload travel image.", { uploadType, error });
+      setUploadError("이미지 업로드에 실패했습니다. 다시 선택해 주세요.");
+    } finally {
+      setIsUploading(false);
+      event.target.value = "";
+    }
+  }
+
   return (
     <div className="flex min-h-0 flex-col rounded-md border border-passport-blue/15 bg-white/62 p-2.5">
       <label className="block">
         <span className="text-sm font-black text-passport-blue">{label}</span>
         <input
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder={placeholder}
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          disabled={isUploading}
           className="mt-1.5 h-9 w-full rounded-md border border-passport-blue/15 bg-passport-paper px-2.5 text-xs font-bold text-passport-ink outline-none transition placeholder:text-passport-ink/35 focus:border-passport-blue"
         />
       </label>
+      {isUploading && <p className="mt-1.5 text-xs font-black text-passport-blue">업로드 중...</p>}
+      {uploadError && <p className="mt-1.5 text-xs font-black text-red-600">{uploadError}</p>}
       <div className="mt-2 flex min-h-[120px] flex-1 items-center justify-center overflow-hidden rounded-md border border-dashed border-passport-blue/25 bg-passport-paper/65">
         {value ? (
           // eslint-disable-next-line @next/next/no-img-element

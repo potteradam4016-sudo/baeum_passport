@@ -3,6 +3,7 @@
 import { ArrowLeft, ArrowRight, BookOpen, Globe2, MapPinned, Stamp } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { LogoutBookmark } from "@/components/passport/LogoutBookmark";
 import { findCountry, isWorkbookEligibleCountry, type RepresentativeCountry } from "@/lib/countries";
 import { getStamps } from "@/lib/api/stamp";
 
@@ -77,6 +78,7 @@ export default function StampPage() {
     <main className="passport-entry paper-surface flex h-screen items-center justify-center overflow-hidden p-4 sm:p-6">
       <section className="passport-book-open passport-soft-enter passport-explorer-book workbook-book" aria-label="세계 여행 기록">
         <PassportBookmarks />
+        <LogoutBookmark />
 
         <div className="passport-page passport-page-left">
           <div key={`stamp-left-${currentSpread}`} className="passport-open-content workbook-page-turn">

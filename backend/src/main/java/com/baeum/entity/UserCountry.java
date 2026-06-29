@@ -35,4 +35,10 @@ public class UserCountry {
 
     @Column(name = "immigration_passed_at")
     private String immigrationPassedAt;
+
+    @Column(name = "immigration_score")
+    private Integer immigrationScore;
+
+    @Column(name = "immigration_completed_at")
+    private String immigrationCompletedAt;
 }

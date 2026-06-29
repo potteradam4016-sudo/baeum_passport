@@ -61,6 +61,7 @@ public class UserCountryService {
         userCountry.setUserId(userId);
         userCountry.setCountryId(countryId);
         userCountry.setImmigrationPassed(0);
+        userCountry.setImmigrationScore(null);
         userCountry.setAddedAt(Instant.now().toString());
 
         return toResponseDto(userCountryRepository.save(userCountry));
@@ -77,10 +78,18 @@ public class UserCountryService {
     public UserCountryResponseDto passImmigration(Long id) {
         Long userId = authUtil.getCurrentUserId();
         UserCountry userCountry = getOwnedUserCountry(id, userId);
-        userCountry.setImmigrationPassed(1);
-        userCountry.setImmigrationPassedAt(Instant.now().toString());
 
-        return toResponseDto(userCountryRepository.save(userCountry));
+        if (isImmigrationPassed(userCountry)) {
+            return toResponseDto(userCountry, true, "이미 입국심사를 통과한 국가입니다.");
+        }
+
+        String completedAt = Instant.now().toString();
+        userCountry.setImmigrationPassed(1);
+        userCountry.setImmigrationScore(3);
+        userCountry.setImmigrationPassedAt(completedAt);
+        userCountry.setImmigrationCompletedAt(completedAt);
+
+        return toResponseDto(userCountryRepository.save(userCountry), false, "입국심사를 통과했습니다.");
     }
 
     private UserCountryDto toUserCountryDto(UserCountry userCountry) {
@@ -98,6 +107,8 @@ public class UserCountryService {
                 continent.getName(),
                 isImmigrationPassed(userCountry),
                 userCountry.getImmigrationPassedAt(),
+                userCountry.getImmigrationScore(),
+                userCountry.getImmigrationCompletedAt(),
                 userCountry.getAddedAt());
     }
 
@@ -113,11 +124,19 @@ public class UserCountryService {
     }
 
     private UserCountryResponseDto toResponseDto(UserCountry userCountry) {
+        return toResponseDto(userCountry, false, null);
+    }
+
+    private UserCountryResponseDto toResponseDto(UserCountry userCountry, boolean alreadyPassed, String message) {
         return new UserCountryResponseDto(
                 userCountry.getId(),
                 userCountry.getCountryId(),
                 isImmigrationPassed(userCountry),
                 userCountry.getImmigrationPassedAt(),
+                userCountry.getImmigrationScore(),
+                userCountry.getImmigrationCompletedAt(),
+                alreadyPassed,
+                message,
                 userCountry.getAddedAt());
     }
 

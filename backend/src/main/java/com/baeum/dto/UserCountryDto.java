@@ -30,6 +30,12 @@ public class UserCountryDto {
     @JsonProperty("immigration_passed_at")
     private String immigrationPassedAt;
 
+    @JsonProperty("immigration_score")
+    private Integer immigrationScore;
+
+    @JsonProperty("immigration_completed_at")
+    private String immigrationCompletedAt;
+
     @JsonProperty("added_at")
     private String addedAt;
 }

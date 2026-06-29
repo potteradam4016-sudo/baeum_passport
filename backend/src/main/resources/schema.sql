@@ -50,8 +50,20 @@ CREATE TABLE IF NOT EXISTS user_countries (
   country_id BIGINT REFERENCES countries(id),
   added_at TEXT DEFAULT (CURRENT_TIMESTAMP::TEXT),
   immigration_passed INTEGER DEFAULT 0,
-  immigration_passed_at TEXT
+  immigration_passed_at TEXT,
+  immigration_score INTEGER,
+  immigration_completed_at TEXT,
+  CONSTRAINT uk_user_countries_user_country UNIQUE (user_id, country_id)
 );
+
+ALTER TABLE user_countries
+ADD COLUMN IF NOT EXISTS immigration_score INTEGER;
+
+ALTER TABLE user_countries
+ADD COLUMN IF NOT EXISTS immigration_completed_at TEXT;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_user_countries_user_country
+ON user_countries (user_id, country_id);
 
 CREATE TABLE IF NOT EXISTS travel_info (
   id BIGSERIAL PRIMARY KEY,

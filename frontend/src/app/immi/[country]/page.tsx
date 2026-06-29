@@ -1,21 +1,110 @@
 "use client";
 
-import { ArrowLeft, ClipboardCheck, Plane } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { findCountry, isWorkbookEligibleCountry } from "@/lib/countries";
+import { useEffect, useMemo, useState } from "react";
+import { addUserCountry, getUserCountries, passImmigration } from "@/lib/api/immigration";
+import { getCountryIdByName } from "@/lib/api/country";
+import { countryPath, findCountry, isWorkbookEligibleCountry, workbookCountries, type RepresentativeCountry } from "@/lib/countries";
+
+type ImmigrationQuestion = {
+  prompt: string;
+  answer: string;
+  options: string[];
+};
+
+const immigrationBackgrounds = ["/images/immi/happy.png", "/images/immi/bad.png", "/images/immi/angry.png"];
+const maxWrongCount = 3;
 
 export default function ImmigrationPage({ params }: { params: { country: string } }) {
   const router = useRouter();
   const countryName = decodeURIComponent(params.country);
   const country = findCountry(countryName);
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [wrongCount, setWrongCount] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState("");
+  const [showFailureModal, setShowFailureModal] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [immigrationError, setImmigrationError] = useState("");
+
+  const questions = useMemo(() => (country ? buildImmigrationQuestions(country) : []), [country]);
+  const currentQuestion = questions[questionIndex];
+  const backgroundImage = immigrationBackgrounds[Math.min(wrongCount, 2)];
+  const remainingChances = Math.max(maxWrongCount - wrongCount, 0);
 
   useEffect(() => {
     if (country && !isWorkbookEligibleCountry(country)) {
       router.replace("/worldmap");
     }
   }, [country, router]);
+
+  function retryImmigration() {
+    setQuestionIndex(0);
+    setWrongCount(0);
+    setSelectedAnswer("");
+    setShowFailureModal(false);
+    setImmigrationError("");
+  }
+
+  async function completeImmigration() {
+    if (!country) return;
+
+    try {
+      setIsCompleting(true);
+      setImmigrationError("");
+      const countryId = await getCountryIdByName(country.name, true);
+
+      if (!countryId) {
+        setImmigrationError("국가 정보를 찾지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        setIsCompleting(false);
+        return;
+      }
+
+      const userCountries = await getUserCountries();
+      let userCountryId = userCountries.find((userCountry) => userCountry.country_id === countryId || userCountry.name === country.name)?.id;
+
+      if (!userCountryId) {
+        const addedCountry = await addUserCountry(countryId);
+        userCountryId = addedCountry.id;
+      }
+
+      if (userCountryId == null) {
+        throw new Error("User country id was not returned.");
+      }
+
+      await passImmigration(userCountryId);
+      router.push(`/workbook/${countryPath(country.name)}`);
+    } catch (error) {
+      console.error("Failed to complete immigration.", { countryName, error });
+      setImmigrationError("입국심사 완료 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+      setIsCompleting(false);
+    }
+  }
+
+  async function handleNextQuestion() {
+    if (!currentQuestion || !selectedAnswer || showFailureModal || isCompleting) return;
+
+    if (selectedAnswer !== currentQuestion.answer) {
+      const nextWrongCount = wrongCount + 1;
+      setWrongCount(nextWrongCount);
+      setSelectedAnswer("");
+
+      if (nextWrongCount >= maxWrongCount) {
+        setShowFailureModal(true);
+      }
+
+      return;
+    }
+
+    if (questionIndex >= questions.length - 1) {
+      await completeImmigration();
+      return;
+    }
+
+    setQuestionIndex((index) => index + 1);
+    setSelectedAnswer("");
+  }
 
   if (!country || !isWorkbookEligibleCountry(country)) {
     return (
@@ -52,19 +141,118 @@ export default function ImmigrationPage({ params }: { params: { country: string 
           </Link>
         </header>
 
-        <section className="relative flex min-h-0 flex-1 items-center justify-center p-8 text-center">
-          <div className="absolute inset-0 flex items-center justify-center text-passport-blue/[0.04]" aria-hidden="true">
-            <Plane size={420} strokeWidth={1.2} />
-          </div>
-          <div className="relative z-10 max-w-2xl">
-            <span className="mx-auto flex h-24 w-24 items-center justify-center rounded-full border border-passport-gold/45 bg-passport-gold/10 text-passport-stamp">
-              <ClipboardCheck size={42} strokeWidth={1.8} />
-            </span>
-            <h2 className="mt-8 text-4xl font-black text-passport-navy">입국심사 준비 중</h2>
-            <p className="mt-5 text-lg font-bold leading-8 text-passport-ink/72">이 화면은 이후 입국심사 활동을 진행할 큰 전용 창입니다. 현재는 페이지 이동과 기본 창만 구현되어 있습니다.</p>
-          </div>
+        <section
+          className="relative min-h-0 flex-1 overflow-hidden bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url(${backgroundImage})` }}
+        >
+          <section className="absolute right-0 top-0 z-10 flex h-full w-[38%] min-w-[460px] items-stretch justify-center">
+            <div className="flex h-full w-full flex-col rounded-2xl border border-passport-gold/55 bg-white/95 p-8 text-left shadow-2xl">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-passport-stamp">Question {questionIndex + 1} / {questions.length}</p>
+              <p className="mt-4 inline-flex rounded-full border border-passport-blue/20 bg-passport-blue/10 px-4 py-2 text-sm font-black text-passport-blue">
+                남은 기회 : {remainingChances}회
+              </p>
+              <h2 className="mt-3 text-2xl font-black text-passport-navy">문제 {questionIndex + 1} / {questions.length}</h2>
+              <p className="mt-7 min-h-[96px] text-xl font-black leading-9 text-passport-ink">{currentQuestion.prompt}</p>
+
+              <div className="mt-6 grid flex-1 content-start gap-4">
+                {currentQuestion.options.map((option, index) => {
+                  const selected = selectedAnswer === option;
+
+                  return (
+                    <button
+                      key={`${currentQuestion.prompt}-${option}`}
+                      type="button"
+                      onClick={() => setSelectedAnswer(option)}
+                      className={`flex min-h-14 items-center gap-4 rounded-lg border px-5 py-4 text-left text-base font-black transition ${
+                        selected
+                          ? "border-passport-gold bg-passport-gold/18 text-passport-navy shadow"
+                          : "border-passport-blue/15 bg-white/78 text-passport-ink hover:border-passport-gold hover:bg-passport-gold/10"
+                      }`}
+                    >
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-passport-blue/20 bg-passport-paper text-sm text-passport-blue">
+                        {index + 1}
+                      </span>
+                      {option}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {immigrationError && <p className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{immigrationError}</p>}
+
+              <button
+                type="button"
+                onClick={handleNextQuestion}
+                disabled={!selectedAnswer || isCompleting}
+                className="mt-7 h-14 w-full rounded-lg bg-passport-blue text-lg font-black text-white shadow transition hover:bg-passport-navy disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {isCompleting ? "처리 중" : questionIndex === questions.length - 1 ? "입국심사 완료" : "다음 문제"}
+              </button>
+            </div>
+          </section>
+
+          {showFailureModal && <ImmigrationFailureModal onRetry={retryImmigration} onBack={() => router.push("/worldmap")} />}
         </section>
       </section>
     </main>
   );
+}
+
+function ImmigrationFailureModal({ onRetry, onBack }: { onRetry: () => void; onBack: () => void }) {
+  return (
+    <div className="absolute inset-0 z-30 flex items-center justify-center bg-passport-navy/30 px-6">
+      <section className="w-full max-w-sm rounded-lg border border-passport-gold/50 bg-passport-paper p-6 text-center shadow-2xl">
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-passport-stamp">Immigration Failed</p>
+        <h2 className="mt-3 text-2xl font-black text-passport-navy">입국 심사 실패</h2>
+        <p className="mt-3 text-sm font-bold leading-6 text-passport-ink/70">
+          입국 심사에 실패했습니다.
+          <br />
+          다시 도전해주세요.
+        </p>
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <button type="button" onClick={onRetry} className="h-11 rounded-md bg-passport-navy font-black text-white shadow transition hover:bg-passport-blue">
+            재도전
+          </button>
+          <button type="button" onClick={onBack} className="h-11 rounded-md border border-passport-blue/20 font-black text-passport-blue transition hover:bg-passport-blue/10">
+            뒤로가기
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function buildImmigrationQuestions(country: RepresentativeCountry): ImmigrationQuestion[] {
+  return [
+    {
+      prompt: `${country.name}의 수도는 어디인가요?`,
+      answer: country.capital,
+      options: buildOptions(country.capital, "capital", country),
+    },
+    {
+      prompt: `${country.name}에서 주로 사용하는 언어는 무엇인가요?`,
+      answer: country.language,
+      options: buildOptions(country.language, "language", country),
+    },
+    {
+      prompt: `${country.name}의 현지 인사말은 무엇인가요?`,
+      answer: country.greeting,
+      options: buildOptions(country.greeting, "greeting", country),
+    },
+  ];
+}
+
+function buildOptions(fieldValue: string, field: "capital" | "language" | "greeting", country: RepresentativeCountry) {
+  const wrongOptions = workbookCountries
+    .filter((candidate) => candidate.name !== country.name)
+    .map((candidate) => candidate[field])
+    .filter((option) => option && option !== fieldValue);
+  return stableShuffle([fieldValue, ...Array.from(new Set(wrongOptions)).slice(0, 3)]);
+}
+
+function stableShuffle(options: string[]) {
+  return options
+    .map((option, index) => ({ option, weight: Array.from(option).reduce((sum, char) => sum + char.charCodeAt(0), index) % 17 }))
+    .sort((left, right) => left.weight - right.weight)
+    .map(({ option }) => option);
 }

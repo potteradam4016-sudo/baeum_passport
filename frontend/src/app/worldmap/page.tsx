@@ -3,8 +3,12 @@
 import { ArrowLeft, BookOpen, Globe2, Info, MapPinned, Stamp } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { LogoutBookmark } from "@/components/passport/LogoutBookmark";
 import { WorldMapGraphic } from "@/components/WorldMapGraphic";
+import { getCountryIdByName } from "@/lib/api/country";
+import { getUserCountries } from "@/lib/api/immigration";
 import { continents, countryPath, isWorkbookEligibleCountry, representativeCountries, type ContinentKey, type RepresentativeCountry } from "@/lib/countries";
 
 const continentImages: Record<ContinentKey, string> = {
@@ -31,8 +35,11 @@ const countryMapMarkers: Record<string, { left: string; top: string }> = {
 };
 
 export default function WorldMapPage() {
+  const router = useRouter();
   const [selectedContinent, setSelectedContinent] = useState<ContinentKey | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<RepresentativeCountry | null>(null);
+  const [alreadyPassedCountryName, setAlreadyPassedCountryName] = useState("");
+  const [isCheckingImmigration, setIsCheckingImmigration] = useState(false);
 
   const continent = selectedContinent ? continents[selectedContinent] : null;
   const continentCountries = useMemo(() => {
@@ -52,10 +59,42 @@ export default function WorldMapPage() {
     setSelectedCountry(null);
   }
 
+  async function handleImmigrationClick(country: RepresentativeCountry) {
+    const targetHref = `/immi/${countryPath(country.name)}`;
+
+    try {
+      setIsCheckingImmigration(true);
+      const countryId = await getCountryIdByName(country.name, true);
+
+      if (!countryId) {
+        router.push(targetHref);
+        return;
+      }
+
+      const userCountries = await getUserCountries();
+      const alreadyPassed = userCountries.some(
+        (userCountry) => userCountry.country_id === countryId && userCountry.immigration_passed
+      );
+
+      if (alreadyPassed) {
+        setAlreadyPassedCountryName(country.name);
+        return;
+      }
+
+      router.push(targetHref);
+    } catch (error) {
+      console.error("Failed to check immigration status.", { countryName: country.name, error });
+      router.push(targetHref);
+    } finally {
+      setIsCheckingImmigration(false);
+    }
+  }
+
   return (
     <main className="passport-entry paper-surface flex h-screen items-center justify-center overflow-hidden p-4 sm:p-6">
       <section className="passport-book-open passport-soft-enter passport-explorer-book" aria-label="세계 여행 배움여권">
         <PassportBookmarks country={bookmarkCountry} />
+        <LogoutBookmark />
 
         <div className="passport-page passport-page-left">
           <div className="passport-open-content gap-4">
@@ -132,9 +171,15 @@ export default function WorldMapPage() {
 
         <div className="passport-page passport-page-right">
           <div className="passport-open-content">
-            {selectedCountry ? <CountryDetail country={selectedCountry} /> : <EmptyCountryState selectedContinent={selectedContinent} />}
+            {selectedCountry ? (
+              <CountryDetail country={selectedCountry} isCheckingImmigration={isCheckingImmigration} onImmigrationClick={handleImmigrationClick} />
+            ) : (
+              <EmptyCountryState selectedContinent={selectedContinent} />
+            )}
           </div>
         </div>
+
+        {alreadyPassedCountryName && <AlreadyPassedImmigrationModal onClose={() => setAlreadyPassedCountryName("")} />}
       </section>
     </main>
   );
@@ -215,7 +260,15 @@ function ContinentExplorer({
   );
 }
 
-function CountryDetail({ country }: { country: RepresentativeCountry }) {
+function CountryDetail({
+  country,
+  isCheckingImmigration,
+  onImmigrationClick,
+}: {
+  country: RepresentativeCountry;
+  isCheckingImmigration: boolean;
+  onImmigrationClick: (country: RepresentativeCountry) => void;
+}) {
   const isComparisonBase = country.name === "대한민국";
   const canEnterImmigration = isWorkbookEligibleCountry(country);
 
@@ -232,12 +285,14 @@ function CountryDetail({ country }: { country: RepresentativeCountry }) {
           </div>
         </div>
         {canEnterImmigration && (
-          <Link
-            href={`/immi/${countryPath(country.name)}`}
-            className="inline-flex h-11 shrink-0 items-center justify-center rounded-md bg-passport-navy px-4 text-sm font-black text-white shadow transition hover:bg-passport-blue"
+          <button
+            type="button"
+            onClick={() => onImmigrationClick(country)}
+            disabled={isCheckingImmigration}
+            className="inline-flex h-11 shrink-0 items-center justify-center rounded-md bg-passport-navy px-4 text-sm font-black text-white shadow transition hover:bg-passport-blue disabled:cursor-not-allowed disabled:opacity-60"
           >
             입국심사
-          </Link>
+          </button>
         )}
       </div>
 
@@ -254,6 +309,21 @@ function CountryDetail({ country }: { country: RepresentativeCountry }) {
         </div>
       </div>
     </section>
+  );
+}
+
+function AlreadyPassedImmigrationModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-30 flex items-center justify-center px-6">
+      <section className="w-full max-w-sm rounded-lg border border-passport-gold/50 bg-passport-paper p-6 text-center shadow-2xl">
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-passport-stamp">Immigration Complete</p>
+        <h2 className="mt-3 text-2xl font-black text-passport-navy">입국심사 완료</h2>
+        <p className="mt-3 text-sm font-bold leading-6 text-passport-ink/70">이미 입국심사를 통과한 국가입니다.</p>
+        <button type="button" onClick={onClose} className="mt-6 h-11 w-full rounded-md bg-passport-navy font-black text-white shadow transition hover:bg-passport-blue">
+          확인
+        </button>
+      </section>
+    </div>
   );
 }
 

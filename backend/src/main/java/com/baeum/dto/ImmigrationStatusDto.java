@@ -7,18 +7,16 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class UserCountryResponseDto {
-
-    private Long id;
+public class ImmigrationStatusDto {
 
     @JsonProperty("country_id")
     private Long countryId;
 
+    @JsonProperty("user_country_id")
+    private Long userCountryId;
+
     @JsonProperty("immigration_passed")
     private boolean immigrationPassed;
-
-    @JsonProperty("immigration_passed_at")
-    private String immigrationPassedAt;
 
     @JsonProperty("immigration_score")
     private Integer immigrationScore;
@@ -30,7 +28,4 @@ public class UserCountryResponseDto {
     private boolean alreadyPassed;
 
     private String message;
-
-    @JsonProperty("added_at")
-    private String addedAt;
 }

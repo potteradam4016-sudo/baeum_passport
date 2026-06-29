@@ -4,6 +4,7 @@ import { BookOpen, Globe2, ImageIcon, MapPinned, Plus, Stamp } from "lucide-reac
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import { LogoutBookmark } from "@/components/passport/LogoutBookmark";
 import { countryPath } from "@/lib/countries";
 import { createTravelInfo, getTravelInfos } from "@/lib/api/travel";
 import type { TravelCountryInfo } from "@/lib/storage";
@@ -63,6 +64,7 @@ export default function TravelInfoIndexPage() {
     <main className="passport-entry paper-surface flex h-screen items-center justify-center overflow-hidden p-4 sm:p-6">
       <section className="passport-book-open passport-soft-enter passport-explorer-book workbook-book" aria-label="여행정보">
         <PassportBookmarks />
+        <LogoutBookmark />
 
         <div className="passport-page passport-page-left">
           <div className="passport-open-content justify-between gap-6">

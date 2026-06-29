@@ -3,6 +3,7 @@
 import { BookOpen, Compass, Globe2, MapPinned, PenLine, Stamp } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { LogoutBookmark } from "@/components/passport/LogoutBookmark";
 import { countryPath, representativeCountries, workbookCountries, type RepresentativeCountry } from "@/lib/countries";
 
 const selectableCountries = workbookCountries;
@@ -13,6 +14,7 @@ export default function WorkbookIndexPage() {
     <main className="passport-entry paper-surface flex h-screen items-center justify-center overflow-hidden p-4 sm:p-6">
       <section className="passport-book-open passport-soft-enter passport-explorer-book workbook-book" aria-label="학습지 국가 선택">
         <PassportBookmarks country={bookmarkCountry} />
+        <LogoutBookmark />
 
         <div className="passport-page passport-page-left">
           <div className="passport-open-content justify-between gap-6">

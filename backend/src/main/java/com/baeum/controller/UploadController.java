@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
 @RequestMapping("/api/upload")
@@ -41,7 +42,13 @@ public class UploadController {
     }
 
     private ResponseEntity<Map<String, String>> uploadImage(MultipartFile file, String prefix) {
-        if (!ALLOWED_CONTENT_TYPES.contains(file.getContentType())) {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "업로드할 이미지 파일을 선택해 주세요."));
+        }
+
+        String contentType = file.getContentType();
+        if (!StringUtils.hasText(contentType) || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "지원하지 않는 파일 형식입니다."));
         }
@@ -61,8 +68,13 @@ public class UploadController {
             }
 
             Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+            String imageUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/uploads/")
+                    .path(filename)
+                    .toUriString();
+
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(Map.of("url", "/uploads/" + filename));
+                    .body(Map.of("url", imageUrl));
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "파일 업로드에 실패했습니다."));

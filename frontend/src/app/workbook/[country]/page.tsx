@@ -3,9 +3,11 @@
 import { ArrowLeft, ArrowRight, BookOpen, BookOpenCheck, ChevronLeft, Globe2, ImageIcon, MapPinned, Stamp } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
+import { LogoutBookmark } from "@/components/passport/LogoutBookmark";
 import { countryPath, findCountry, isWorkbookEligibleCountry, representativeCountries, workbookCountries, type RepresentativeCountry } from "@/lib/countries";
 import { getCountryIdByName } from "@/lib/api/country";
+import { uploadFlagImage, uploadMapImage } from "@/lib/api/upload";
 import { completeWorkbook as completeWorkbookApi, getWorkbook, saveWorkbook } from "@/lib/api/workbook";
 import type { WorkbookRecord } from "@/lib/storage";
 
@@ -233,6 +235,7 @@ export default function WorkbookPage({ params }: { params: { country: string } }
     <main className="passport-entry paper-surface flex h-screen items-center justify-center overflow-hidden p-4 sm:p-6">
       <section className="passport-book-open passport-soft-enter passport-explorer-book workbook-book" aria-label={`${country.name} 학습지`}>
         <PassportBookmarks country={bookmarkCountry} onNavigate={handleWorkbookNavigation} />
+        <LogoutBookmark />
 
         <div className="passport-page passport-page-left">
           <div key={`left-spread-${currentSpread}`} className="passport-open-content workbook-page-turn">
@@ -400,7 +403,7 @@ function FlagObservationPage({
     <>
       <WorkbookPageHeader pageNumber={2} title="국기 관찰" subtitle="국기 이미지를 보고 색상, 상징, 특징, 인상 깊은 점을 기록하세요." />
       <section className="grid min-h-0 flex-1 grid-rows-[1.15fr_1fr] gap-3">
-        <ImageUrlField label="국기 이미지 URL" value={record.flagImage} onChange={(value) => onChange("flagImage", value)} placeholder="국기 이미지 주소" previewSize="xl" />
+        <ImageUrlField label="국기 이미지" value={record.flagImage} onChange={(value) => onChange("flagImage", value)} uploadType="flag" previewSize="xl" />
         <TextArea
           label="국기 관찰 내용"
           value={record.flagObservation}
@@ -428,7 +431,7 @@ function MapLocationPage({
     <>
       <WorkbookPageHeader pageNumber={3} title="지도와 위치" subtitle="지도에서 나라가 세계 어디에 있는지 찾아보세요." country={country} showBackLink onNavigate={onNavigate} />
       <section className="grid min-h-0 flex-1 grid-rows-[1.25fr_auto_1fr] gap-3">
-        <ImageUrlField label="지도 이미지 URL" value={record.mapImage} onChange={(value) => onChange("mapImage", value)} placeholder="지도 이미지 주소" previewSize="xl" />
+        <ImageUrlField label="지도 이미지" value={record.mapImage} onChange={(value) => onChange("mapImage", value)} uploadType="map" previewSize="xl" />
         <ContinentSelect value={record.continent} onChange={(value) => onChange("continent", value)} />
         <TextArea
           label="세계 속 위치"
@@ -617,28 +620,51 @@ function ImageUrlField({
   label,
   value,
   onChange,
-  placeholder,
+  uploadType,
   previewSize = "md",
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
-  placeholder: string;
+  uploadType: "flag" | "map";
   previewSize?: "md" | "lg" | "xl";
 }) {
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const previewClass = previewSize === "xl" ? "min-h-[220px] flex-1" : previewSize === "lg" ? "h-32" : "h-20";
+
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      setUploadError("");
+      const imageUrl = uploadType === "flag" ? await uploadFlagImage(file) : await uploadMapImage(file);
+      onChange(imageUrl);
+    } catch (error) {
+      console.error("Failed to upload workbook image.", { uploadType, error });
+      setUploadError("이미지 업로드에 실패했습니다. 다시 선택해 주세요.");
+    } finally {
+      setIsUploading(false);
+      event.target.value = "";
+    }
+  }
 
   return (
     <div className="flex min-h-0 flex-col rounded-md border border-passport-blue/15 bg-white/62 p-2.5">
       <label className="block">
         <span className="text-base font-black text-passport-blue">{label}</span>
         <input
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder={placeholder}
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          disabled={isUploading}
           className="mt-1.5 h-8 w-full rounded-md border border-passport-blue/15 bg-passport-paper px-2.5 text-xs font-bold text-passport-ink outline-none transition placeholder:text-passport-ink/35 focus:border-passport-blue"
         />
       </label>
+      {isUploading && <p className="mt-1.5 text-xs font-black text-passport-blue">업로드 중...</p>}
+      {uploadError && <p className="mt-1.5 text-xs font-black text-red-600">{uploadError}</p>}
       <div className={`mt-2 flex items-center justify-center overflow-hidden rounded-md border border-dashed border-passport-blue/25 bg-passport-paper/65 ${previewClass}`}>
         {value ? (
           // eslint-disable-next-line @next/next/no-img-element
