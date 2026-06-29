@@ -1,10 +1,22 @@
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Backend
+backend/.gradle/
+backend/build/
+backend/uploads/
+
+# Local artifacts
 .gradle/
+.next/
 build/
 *.db
+!backend/world_travel.db
+*.log
+application-local.properties
 
+# IDE
 .idea/
 .vscode/
-
-*.log
-
-application-local.properties
