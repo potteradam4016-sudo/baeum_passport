@@ -39,4 +39,6 @@ public class SignupRequestDto {
 
     @NotNull(message = "성별을 입력해주세요.")
     private String gender;
+
+    private String avatar;
 }

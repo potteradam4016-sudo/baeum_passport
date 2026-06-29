@@ -242,6 +242,7 @@ function PassportBookmarks() {
     { label: "사증", href: "/stamp", active: true, icon: Stamp },
     { label: "학습지", href: "/workbook", active: false, icon: BookOpen },
     { label: "여행정보", href: "/travel-info", active: false, icon: MapPinned },
+    { label: "내 여권 보기", href: "/mypage/passport", active: false, icon: BookOpen },
   ];
 
   return (

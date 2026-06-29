@@ -16,4 +16,5 @@ public class AuthResponseDto {
 
     private String username;
     private String name;
+    private String avatar;
 }

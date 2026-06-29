@@ -2,8 +2,9 @@
 
 import { UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useCallback, useState } from "react";
 import { signup } from "@/lib/api/auth";
+import { AvatarSelector } from "@/components/passport/AvatarSelector";
 
 export function SignupForm() {
   const router = useRouter();
@@ -15,11 +16,12 @@ export function SignupForm() {
     firstName: "",
     birthDate: "",
     gender: "선택 안 함",
+    avatar: "",
   });
 
-  function updateField(field: keyof typeof form, value: string) {
+  const updateField = useCallback((field: keyof typeof form, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
-  }
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -33,6 +35,8 @@ export function SignupForm() {
         <p className="text-sm font-black text-passport-stamp">New Passport</p>
         <h2 className="mt-2 text-3xl font-black text-passport-navy">회원가입</h2>
       </div>
+
+      <AvatarSelector gender={form.gender} value={form.avatar} onChange={(value) => updateField("avatar", value)} />
 
       <div className="grid grid-cols-3 gap-3">
         {[

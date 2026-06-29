@@ -1,5 +1,7 @@
 package com.baeum.entity;
 
+import java.time.Instant;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -32,10 +34,12 @@ public class User {
 
     private String gender;
 
+    private String avatar;
+
     @Column(name = "birth_date")
     private String birthDate;
 
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @Column(name = "created_at")
     private String createdAt;
 
     public User(
@@ -46,6 +50,7 @@ public class User {
             Integer classNum,
             Integer studentNum,
             String gender,
+            String avatar,
             String birthDate) {
         this.username = username;
         this.password = password;
@@ -54,6 +59,8 @@ public class User {
         this.classNum = classNum;
         this.studentNum = studentNum;
         this.gender = gender;
+        this.avatar = avatar;
         this.birthDate = birthDate;
+        this.createdAt = Instant.now().toString();
     }
 }

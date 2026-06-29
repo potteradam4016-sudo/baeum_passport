@@ -3,7 +3,8 @@
 import { UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useCallback, useState } from "react";
+import { AvatarSelector } from "@/components/passport/AvatarSelector";
 import { signup } from "@/lib/api/auth";
 
 export default function SignupPage() {
@@ -16,11 +17,12 @@ export default function SignupPage() {
     firstName: "",
     birthDate: "",
     gender: "선택 안 함",
+    avatar: "",
   });
 
-  function updateField(field: keyof typeof form, value: string) {
+  const updateField = useCallback((field: keyof typeof form, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
-  }
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -35,6 +37,9 @@ export default function SignupPage() {
           배움여권
         </Link>
         <h1 className="mt-5 text-3xl font-black text-passport-navy">회원가입</h1>
+        <div className="mt-7">
+          <AvatarSelector gender={form.gender} value={form.avatar} onChange={(value) => updateField("avatar", value)} />
+        </div>
         <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {[
             ["grade", "학년"],

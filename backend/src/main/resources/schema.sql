@@ -7,9 +7,13 @@ CREATE TABLE IF NOT EXISTS users (
   class_num INTEGER,
   student_num INTEGER,
   gender TEXT,
+  avatar TEXT,
   birth_date TEXT,
   created_at TEXT DEFAULT (CURRENT_TIMESTAMP::TEXT)
 );
+
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS avatar TEXT;
 
 CREATE TABLE IF NOT EXISTS continents (
   id BIGSERIAL PRIMARY KEY,

@@ -50,6 +50,7 @@ public class AuthService {
                 request.getClassNum(),
                 request.getStudentNum(),
                 request.getGender(),
+                request.getAvatar(),
                 request.getBirthDate());
         User savedUser = userRepository.save(user);
         String token = jwtUtil.generateToken(savedUser.getId(), savedUser.getUsername());
@@ -58,7 +59,8 @@ public class AuthService {
                 token,
                 savedUser.getId(),
                 savedUser.getUsername(),
-                savedUser.getName());
+                savedUser.getName(),
+                savedUser.getAvatar());
     }
 
     public AuthResponseDto login(LoginRequestDto request) {
@@ -70,7 +72,7 @@ public class AuthService {
         }
 
         String token = jwtUtil.generateToken(user.getId(), user.getUsername());
-        return new AuthResponseDto(token, user.getId(), user.getUsername(), user.getName());
+        return new AuthResponseDto(token, user.getId(), user.getUsername(), user.getName(), user.getAvatar());
     }
 
     public UserInfoDto getMyInfo(Long userId) {
@@ -85,6 +87,8 @@ public class AuthService {
                 user.getClassNum(),
                 user.getStudentNum(),
                 user.getGender(),
-                user.getBirthDate());
+                user.getAvatar(),
+                user.getBirthDate(),
+                user.getCreatedAt());
     }
 }

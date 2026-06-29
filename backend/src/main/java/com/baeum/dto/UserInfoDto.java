@@ -21,7 +21,11 @@ public class UserInfoDto {
     private Integer studentNum;
 
     private String gender;
+    private String avatar;
 
     @JsonProperty("birth_date")
     private String birthDate;
+
+    @JsonProperty("created_at")
+    private String createdAt;
 }
