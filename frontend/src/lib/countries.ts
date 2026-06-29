@@ -315,6 +315,16 @@ export function countryPath(name: string) {
   return encodeURIComponent(name);
 }
 
+export function isKoreaCountry(country: RepresentativeCountry) {
+  return country.flagImage.includes("/kr.");
+}
+
+export function isWorkbookEligibleCountry(country: RepresentativeCountry) {
+  return !isKoreaCountry(country);
+}
+
+export const workbookCountries = representativeCountries.filter(isWorkbookEligibleCountry);
+
 export function findCountry(name: string) {
   return representativeCountries.find((country) => country.name === name);
 }

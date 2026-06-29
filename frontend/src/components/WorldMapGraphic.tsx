@@ -78,7 +78,7 @@ export function WorldMapGraphic({ selected, onSelect }: WorldMapGraphicProps) {
             type="button"
             key={area.key}
             onClick={() => onSelect(area.key)}
-            className="absolute min-h-8 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full px-4 py-2 text-xs font-black text-white shadow transition hover:scale-105 hover:bg-passport-gold focus:outline-none focus:ring-2 focus:ring-passport-gold"
+            className="absolute min-h-9 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-black text-white shadow transition hover:scale-105 hover:bg-passport-gold focus:outline-none focus:ring-2 focus:ring-passport-gold"
             style={{
               ...area.labelPosition,
               backgroundColor: active ? color : "rgba(16, 42, 95, 0.72)",

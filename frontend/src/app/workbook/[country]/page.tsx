@@ -1,110 +1,630 @@
 "use client";
 
-import { BookOpenCheck, Home, Map, Shirt, Utensils } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, BookOpenCheck, ChevronLeft, Globe2, ImageIcon, MapPinned, Stamp } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { DashboardShell } from "@/components/DashboardShell";
-import { findCountry } from "@/lib/countries";
-import { addUnique, loadState, saveState } from "@/lib/storage";
+import { useEffect, useMemo, useState } from "react";
+import { countryPath, findCountry, isWorkbookEligibleCountry, representativeCountries, workbookCountries, type RepresentativeCountry } from "@/lib/countries";
+import { addUnique, loadState, saveState, type WorkbookRecord } from "@/lib/storage";
+
+const continentOptions = ["아시아", "유럽", "북아메리카", "남아메리카", "아프리카", "오세아니아"];
+
+const emptyRecord: WorkbookRecord = {
+  capital: "",
+  language: "",
+  population: "",
+  area: "",
+  populationComparison: "",
+  areaComparison: "",
+  flagImage: "",
+  mapImage: "",
+  flagObservation: "",
+  continent: "",
+  mapLocation: "",
+  greeting: "",
+  researchTopic: "",
+  similarityWithKorea: "",
+  differenceFromKorea: "",
+  question: "",
+  sources: "",
+};
+
+const requiredWorkbookFields: Array<{ field: keyof WorkbookRecord; label: string }> = [
+  { field: "capital", label: "수도" },
+  { field: "language", label: "사용 언어" },
+  { field: "population", label: "인구" },
+  { field: "populationComparison", label: "대한민국 대비 인구" },
+  { field: "area", label: "면적" },
+  { field: "areaComparison", label: "대한민국 대비 면적" },
+  { field: "flagImage", label: "국기 이미지" },
+  { field: "flagObservation", label: "국기 관찰 내용" },
+  { field: "mapImage", label: "지도 이미지" },
+  { field: "continent", label: "어느 대륙에 속하나요?" },
+  { field: "mapLocation", label: "세계 속 위치" },
+  { field: "greeting", label: "현지 인사말" },
+  { field: "researchTopic", label: "대표 조사 주제" },
+  { field: "similarityWithKorea", label: "한국과 비슷한 점" },
+  { field: "differenceFromKorea", label: "한국과 다른 점" },
+];
 
 export default function WorkbookPage({ params }: { params: { country: string } }) {
   const router = useRouter();
   const countryName = decodeURIComponent(params.country);
   const country = findCountry(countryName);
-  const [note, setNote] = useState("");
+  const isEligibleCountry = country ? isWorkbookEligibleCountry(country) : false;
+  const bookmarkCountry = useMemo(() => (country && isEligibleCountry ? country : workbookCountries[0] ?? representativeCountries[0]), [country, isEligibleCountry]);
+  const [currentSpread, setCurrentSpread] = useState(0);
+  const [record, setRecord] = useState<WorkbookRecord>(emptyRecord);
+  const [missingFields, setMissingFields] = useState<string[]>([]);
+  const [showAlreadyStampedModal, setShowAlreadyStampedModal] = useState(false);
 
   useEffect(() => {
-    setNote(loadState().workbookNotes[countryName] ?? "");
-  }, [countryName]);
+    if (country && !isWorkbookEligibleCountry(country)) {
+      router.replace("/workbook");
+      return;
+    }
 
-  function completeWorkbook() {
+    const state = loadState();
+    const savedRecord = state.workbookRecords?.[countryName] as (WorkbookRecord & { continentLocation?: string; newKnowledge?: string }) | undefined;
+    setRecord({
+      ...emptyRecord,
+      ...(savedRecord ?? {}),
+      continent: savedRecord?.continent ?? savedRecord?.continentLocation ?? "",
+      question: savedRecord?.question ?? savedRecord?.newKnowledge ?? state.workbookNotes[countryName] ?? "",
+    });
+  }, [country, countryName, router]);
+
+  function persistRecord(nextRecord: WorkbookRecord) {
     const current = loadState();
     saveState({
       ...current,
+      workbookRecords: { ...(current.workbookRecords ?? {}), [countryName]: nextRecord },
+      workbookNotes: { ...current.workbookNotes, [countryName]: nextRecord.question },
+    });
+  }
+
+  function updateField(field: keyof WorkbookRecord, value: string) {
+    setRecord((current) => {
+      const nextRecord = { ...current, [field]: value };
+      persistRecord(nextRecord);
+      return nextRecord;
+    });
+  }
+
+  function completeWorkbook() {
+    const current = loadState();
+
+    if (current.workbookCompleted.includes(countryName)) {
+      setShowAlreadyStampedModal(true);
+      return;
+    }
+
+    const missing = requiredWorkbookFields.filter(({ field }) => !record[field].trim()).map(({ label }) => label);
+
+    if (missing.length > 0) {
+      setMissingFields(missing);
+      return;
+    }
+
+    saveState({
+      ...current,
       workbookCompleted: addUnique(current.workbookCompleted, countryName),
-      workbookNotes: { ...current.workbookNotes, [countryName]: note },
+      workbookRecords: { ...(current.workbookRecords ?? {}), [countryName]: record },
+      workbookNotes: { ...current.workbookNotes, [countryName]: record.question },
     });
     router.push("/stamp");
   }
 
-  if (!country) {
+  if (!country || !isEligibleCountry) {
     return (
-      <DashboardShell>
-        <div className="p-6 text-passport-navy">대표국가 학습지를 찾을 수 없습니다.</div>
-      </DashboardShell>
+      <main className="passport-entry paper-surface flex h-screen items-center justify-center overflow-hidden p-4 sm:p-6">
+        <section className="passport-book-open passport-soft-enter passport-explorer-book workbook-book" aria-label="학습지 오류">
+          <div className="passport-page passport-page-left">
+            <div className="passport-open-content justify-center">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-passport-stamp">Workbook</p>
+              <h1 className="mt-3 text-3xl font-black text-passport-navy">학습지를 찾을 수 없습니다</h1>
+              <p className="mt-4 leading-7 text-passport-ink/72">국가 선택 화면으로 돌아가 다시 선택해 주세요.</p>
+            </div>
+          </div>
+          <div className="passport-page passport-page-right">
+            <div className="passport-open-content justify-center">
+              <Link
+                href="/workbook"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-passport-navy px-5 font-black text-white shadow transition hover:bg-passport-blue"
+              >
+                <ArrowLeft size={18} />
+                국가 선택으로 돌아가기
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
     );
   }
 
-  const cards = [
-    { icon: Map, label: "지도", value: country.mapNote },
-    { icon: Shirt, label: "전통 의상", value: country.clothing },
-    { icon: Utensils, label: "전통 음식", value: country.food },
-    { icon: Home, label: "전통 가옥", value: country.house },
-  ];
+  const isFirstSpread = currentSpread === 0;
+  const isLastSpread = currentSpread === 2;
 
   return (
-    <DashboardShell>
-      <section className="flex min-w-0 flex-1 flex-col overflow-hidden p-4 lg:p-5">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-bold text-passport-stamp">Representative Workbook</p>
-            <h1 className="text-2xl font-black text-passport-navy lg:text-3xl">{country.name} 학습지</h1>
-          </div>
-          <span className="text-5xl">{country.flag}</span>
-        </div>
+    <main className="passport-entry paper-surface flex h-screen items-center justify-center overflow-hidden p-4 sm:p-6">
+      <section className="passport-book-open passport-soft-enter passport-explorer-book workbook-book" aria-label={`${country.name} 학습지`}>
+        <PassportBookmarks country={bookmarkCountry} />
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-          <section className="scroll-area rounded-lg border border-passport-blue/15 bg-white/78 p-5">
-            <h2 className="text-xl font-black text-passport-navy">국가 개요</h2>
-            <p className="mt-3 leading-7 text-passport-ink/75">{country.overview}</p>
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <Mini label="수도" value={country.capital} />
-              <Mini label="언어" value={country.language} />
-              <Mini label="면적" value={country.area} />
-              <Mini label="인구" value={country.population} />
-            </div>
-            <div className="mt-5 grid gap-3">
-              {cards.map((card) => {
-                const Icon = card.icon;
-                return (
-                  <div key={card.label} className="flex items-center gap-3 rounded-md bg-passport-paper p-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-md bg-passport-blue text-white">
-                      <Icon size={18} />
-                    </span>
-                    <div>
-                      <p className="text-xs font-bold text-passport-blue">{card.label}</p>
-                      <p className="font-bold">{card.value}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className="flex min-h-0 flex-col rounded-lg border border-passport-blue/15 bg-white/78 p-5">
-            <h2 className="text-xl font-black text-passport-navy">내가 정리한 학습 내용</h2>
-            <textarea
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              className="mt-4 min-h-0 flex-1 resize-none rounded-md border border-passport-blue/20 bg-passport-paper p-4 leading-7 outline-none focus:border-passport-blue"
-              placeholder={`${country.name}에 대해 새롭게 알게 된 점을 적어 보세요.`}
+        <div className="passport-page passport-page-left">
+          <div key={`left-spread-${currentSpread}`} className="passport-open-content workbook-page-turn">
+            {currentSpread === 0 && <BasicInfoPage country={country} record={record} onChange={updateField} />}
+            {currentSpread === 1 && <MapLocationPage country={country} record={record} onChange={updateField} />}
+            {currentSpread === 2 && <DeepResearchPage country={country} record={record} onChange={updateField} />}
+            <PageFooter
+              pageNumber={currentSpread === 0 ? 1 : currentSpread === 1 ? 3 : 5}
+              side="left"
+              previousDisabled={isFirstSpread}
+              onPrevious={() => setCurrentSpread((spread) => Math.max(0, spread - 1))}
             />
-            <button onClick={completeWorkbook} className="mt-4 inline-flex h-12 items-center justify-center gap-2 rounded-md bg-passport-stamp font-black text-white shadow transition hover:bg-passport-navy">
-              <BookOpenCheck size={18} />
-              작성 완료하고 사증 받기
-            </button>
-          </section>
+          </div>
         </div>
+
+        <div className="passport-page passport-page-right">
+          <div key={`right-spread-${currentSpread}`} className="passport-open-content workbook-page-turn">
+            {currentSpread === 0 && <FlagObservationPage record={record} onChange={updateField} />}
+            {currentSpread === 1 && <CountryResearchPage record={record} onChange={updateField} />}
+            {currentSpread === 2 && <CompletePage onComplete={completeWorkbook} />}
+            <PageFooter
+              pageNumber={currentSpread === 0 ? 2 : currentSpread === 1 ? 4 : undefined}
+              side="right"
+              completeLabel={isLastSpread}
+              onNext={() => setCurrentSpread((spread) => Math.min(2, spread + 1))}
+            />
+          </div>
+        </div>
+
+        {missingFields.length > 0 && <MissingFieldsModal fields={missingFields} onClose={() => setMissingFields([])} />}
+        {showAlreadyStampedModal && <AlreadyStampedModal countryName={country.name} onClose={() => setShowAlreadyStampedModal(false)} />}
       </section>
-    </DashboardShell>
+    </main>
   );
 }
 
-function Mini({ label, value }: { label: string; value: string }) {
+function MissingFieldsModal({ fields, onClose }: { fields: string[]; onClose: () => void }) {
   return (
-    <div className="rounded-md border border-passport-blue/15 bg-passport-paper p-3">
-      <p className="text-xs font-bold text-passport-blue">{label}</p>
-      <p className="mt-1 font-black text-passport-ink">{value}</p>
+    <div className="absolute inset-0 z-30 flex items-center justify-center bg-passport-navy/30 px-6">
+      <section className="w-full max-w-md rounded-lg border border-passport-gold/50 bg-passport-paper p-6 text-center shadow-2xl">
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-passport-stamp">Workbook Check</p>
+        <h2 className="mt-3 text-2xl font-black text-passport-navy">아직 입력하지 않은 항목이 있어요</h2>
+        <p className="mt-3 text-sm font-bold leading-6 text-passport-ink/70">스탬프를 받으려면 아래 항목을 먼저 채워 주세요.</p>
+        <div className="mt-5 max-h-56 overflow-auto rounded-md border border-passport-blue/15 bg-white/62 p-3 text-left">
+          <ul className="grid gap-2">
+            {fields.map((field) => (
+              <li key={field} className="rounded border border-passport-blue/10 bg-passport-paper px-3 py-2 text-sm font-black text-passport-blue">
+                {field}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <button type="button" onClick={onClose} className="mt-6 h-11 rounded-md bg-passport-navy px-6 font-black text-white shadow transition hover:bg-passport-blue">
+          확인
+        </button>
+      </section>
     </div>
+  );
+}
+
+function AlreadyStampedModal({ countryName, onClose }: { countryName: string; onClose: () => void }) {
+  return (
+    <div className="absolute inset-0 z-30 flex items-center justify-center bg-passport-navy/30 px-6">
+      <section className="w-full max-w-sm rounded-lg border border-passport-gold/50 bg-passport-paper p-6 text-center shadow-2xl">
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-passport-stamp">Stamp Collected</p>
+        <h2 className="mt-3 text-2xl font-black text-passport-navy">이미 스탬프를 받았어요</h2>
+        <p className="mt-3 text-sm font-bold leading-6 text-passport-ink/70">
+          {countryName} 학습지는 이미 완료되어 사증 페이지에 스탬프가 기록되어 있습니다.
+        </p>
+        <button type="button" onClick={onClose} className="mt-6 h-11 rounded-md bg-passport-navy px-6 font-black text-white shadow transition hover:bg-passport-blue">
+          확인
+        </button>
+      </section>
+    </div>
+  );
+}
+
+function WorkbookPageHeader({
+  title,
+  subtitle,
+  country,
+  showBackLink = false,
+}: {
+  pageNumber: number;
+  title: string;
+  subtitle: string;
+  country?: RepresentativeCountry;
+  showBackLink?: boolean;
+}) {
+  return (
+    <header className="mb-3 flex items-start justify-between gap-3">
+      <div>
+        <h1 className="text-2xl font-black text-passport-navy">{country ? `${country.name} 학습지` : title}</h1>
+        {country && <p className="mt-1 text-base font-black text-passport-blue">{title}</p>}
+        <p className="mt-3 text-sm font-bold leading-7 text-passport-ink/72">{subtitle}</p>
+      </div>
+      {showBackLink ? (
+        <Link
+          href="/workbook"
+          className="inline-flex h-11 items-center gap-2 rounded-md border border-passport-blue/20 px-3 text-sm font-bold text-passport-blue transition hover:bg-passport-blue/10"
+        >
+          <ChevronLeft size={17} />
+          목록
+        </Link>
+      ) : (
+        <BookOpen className="shrink-0 text-passport-blue/25" size={30} />
+      )}
+    </header>
+  );
+}
+
+function BasicInfoPage({
+  country,
+  record,
+  onChange,
+}: {
+  country: RepresentativeCountry;
+  record: WorkbookRecord;
+  onChange: (field: keyof WorkbookRecord, value: string) => void;
+}) {
+  return (
+    <>
+      <WorkbookPageHeader pageNumber={1} title="국가 기본 정보" subtitle="나라의 핵심 정보를 조사해 학습지 작성칸에 정리하세요." country={country} showBackLink />
+      <section className="grid min-h-0 flex-1 grid-cols-2 grid-rows-3 gap-3">
+        <LargeField label="수도" value={record.capital} onChange={(value) => onChange("capital", value)} placeholder="조사해서 적어 보세요" />
+        <LargeField label="사용 언어" value={record.language} onChange={(value) => onChange("language", value)} placeholder="예: 영어, 일본어" />
+        <LargeField label="인구" value={record.population} onChange={(value) => onChange("population", value)} placeholder="예: 약 00만 명" />
+        <LargeField label="대한민국 대비 인구" value={record.populationComparison} onChange={(value) => onChange("populationComparison", value)} placeholder="예: 약 2배" />
+        <LargeField label="면적" value={record.area} onChange={(value) => onChange("area", value)} placeholder="예: 약 00만 km²" />
+        <LargeField label="대한민국 대비 면적" value={record.areaComparison} onChange={(value) => onChange("areaComparison", value)} placeholder="예: 약 10배" />
+      </section>
+    </>
+  );
+}
+
+function FlagObservationPage({
+  record,
+  onChange,
+}: {
+  record: WorkbookRecord;
+  onChange: (field: keyof WorkbookRecord, value: string) => void;
+}) {
+  return (
+    <>
+      <WorkbookPageHeader pageNumber={2} title="국기 관찰" subtitle="국기 이미지를 보고 색상, 상징, 특징, 인상 깊은 점을 기록하세요." />
+      <section className="grid min-h-0 flex-1 grid-rows-[1.15fr_1fr] gap-3">
+        <ImageUrlField label="국기 이미지 URL" value={record.flagImage} onChange={(value) => onChange("flagImage", value)} placeholder="국기 이미지 주소" previewSize="xl" />
+        <TextArea
+          label="국기 관찰 내용"
+          value={record.flagObservation}
+          onChange={(value) => onChange("flagObservation", value)}
+          placeholder="색상, 상징, 특징, 인상 깊은 점을 적어 보세요"
+          rows={8}
+        />
+      </section>
+    </>
+  );
+}
+
+function MapLocationPage({
+  country,
+  record,
+  onChange,
+}: {
+  country: RepresentativeCountry;
+  record: WorkbookRecord;
+  onChange: (field: keyof WorkbookRecord, value: string) => void;
+}) {
+  return (
+    <>
+      <WorkbookPageHeader pageNumber={3} title="지도와 위치" subtitle="지도에서 나라가 세계 어디에 있는지 찾아보세요." country={country} showBackLink />
+      <section className="grid min-h-0 flex-1 grid-rows-[1.25fr_auto_1fr] gap-3">
+        <ImageUrlField label="지도 이미지 URL" value={record.mapImage} onChange={(value) => onChange("mapImage", value)} placeholder="지도 이미지 주소" previewSize="xl" />
+        <ContinentSelect value={record.continent} onChange={(value) => onChange("continent", value)} />
+        <TextArea
+          label="세계 속 위치"
+          value={record.mapLocation}
+          onChange={(value) => onChange("mapLocation", value)}
+          placeholder="주변 바다, 이웃 나라, 대륙 안에서의 위치를 적어 보세요."
+          rows={6}
+        />
+      </section>
+    </>
+  );
+}
+
+function CountryResearchPage({
+  record,
+  onChange,
+}: {
+  record: WorkbookRecord;
+  onChange: (field: keyof WorkbookRecord, value: string) => void;
+}) {
+  return (
+    <>
+      <WorkbookPageHeader pageNumber={4} title="국가 조사와 한국 비교" subtitle="조사한 내용을 바탕으로 한국과 비교해 보세요." />
+      <section className="grid min-h-0 flex-1 grid-rows-[auto_1.5fr_1fr_1fr] gap-3">
+        <Field label="현지 인사말" value={record.greeting} onChange={(value) => onChange("greeting", value)} placeholder="현지 언어 인사말" />
+        <TextArea
+          label="대표 조사 주제"
+          value={record.researchTopic}
+          onChange={(value) => onChange("researchTopic", value)}
+          placeholder="문화, 음식, 관광지, 스포츠, 자연환경, 역사, 경제, 기술 등"
+          rows={6}
+        />
+        <TextArea
+          label="한국과 비슷한 점"
+          value={record.similarityWithKorea}
+          onChange={(value) => onChange("similarityWithKorea", value)}
+          placeholder="비슷하다고 느낀 점"
+          rows={5}
+        />
+        <TextArea
+          label="한국과 다른 점"
+          value={record.differenceFromKorea}
+          onChange={(value) => onChange("differenceFromKorea", value)}
+          placeholder="다르다고 느낀 점"
+          rows={5}
+        />
+      </section>
+    </>
+  );
+}
+
+function DeepResearchPage({
+  country,
+  record,
+  onChange,
+}: {
+  country: RepresentativeCountry;
+  record: WorkbookRecord;
+  onChange: (field: keyof WorkbookRecord, value: string) => void;
+}) {
+  return (
+    <>
+      <WorkbookPageHeader pageNumber={5} title="심화 탐구" subtitle="더 깊이 알아보고 싶은 내용과 참고한 자료를 정리하세요." country={country} showBackLink />
+      <section className="grid min-h-0 flex-1 grid-rows-[1fr_auto] gap-3">
+        <TextArea
+          label="더 궁금한 점"
+          value={record.question}
+          onChange={(value) => onChange("question", value)}
+          placeholder="더 알아보고 싶은 내용을 조사해 적어보세요"
+          rows={9}
+        />
+        <TextArea
+          label="참고한 자료"
+          value={record.sources}
+          onChange={(value) => onChange("sources", value)}
+          placeholder="책, 선생님 자료, 웹사이트 이름 등"
+          rows={3}
+        />
+      </section>
+    </>
+  );
+}
+
+function CompletePage({ onComplete }: { onComplete: () => void }) {
+  return (
+    <section className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden text-center">
+      <div>
+        <h2 className="text-3xl font-black text-passport-navy">여행 기록 완료</h2>
+        <p className="mt-4 text-sm font-bold leading-6 text-passport-ink/70">
+          작성한 내용을 확인했다면 스탬프를 받아 여권에 기록하세요.
+        </p>
+      </div>
+      <div className="passport-map-watermark">
+        <Stamp size={150} />
+      </div>
+      <button
+        type="button"
+        onClick={onComplete}
+        className="relative z-10 mt-14 inline-flex h-11 items-center justify-center gap-2 rounded-md bg-passport-stamp px-5 font-black text-white shadow transition hover:bg-passport-navy"
+      >
+        <BookOpenCheck size={18} />
+        완료하고 스탬프 받기
+      </button>
+    </section>
+  );
+}
+
+function LargeField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <label className="flex min-h-0 flex-col rounded-md border border-passport-blue/15 bg-white/62 p-3">
+      <span className="text-base font-black text-passport-blue">{label}</span>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="mt-2 min-h-0 flex-1 rounded-md border border-passport-blue/15 bg-passport-paper px-3 text-base font-bold text-passport-ink outline-none transition placeholder:text-passport-ink/35 focus:border-passport-blue"
+      />
+    </label>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <label className="block rounded-md border border-passport-blue/15 bg-white/62 p-2.5">
+      <span className="text-base font-black text-passport-blue">{label}</span>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="mt-1.5 h-9 w-full rounded-md border border-passport-blue/15 bg-passport-paper px-2.5 text-sm font-bold text-passport-ink outline-none transition placeholder:text-passport-ink/35 focus:border-passport-blue"
+      />
+    </label>
+  );
+}
+
+function TextArea({
+  label,
+  value,
+  onChange,
+  placeholder,
+  rows,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  rows: number;
+}) {
+  return (
+    <label className="flex min-h-0 flex-col rounded-md border border-passport-blue/15 bg-white/62 p-2.5">
+      <span className="text-base font-black text-passport-blue">{label}</span>
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        className="mt-1.5 min-h-0 w-full flex-1 resize-none rounded-md border border-passport-blue/15 bg-passport-paper p-2.5 text-sm font-bold leading-5 text-passport-ink outline-none transition placeholder:text-passport-ink/35 focus:border-passport-blue"
+      />
+    </label>
+  );
+}
+
+function ImageUrlField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  previewSize = "md",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  previewSize?: "md" | "lg" | "xl";
+}) {
+  const previewClass = previewSize === "xl" ? "min-h-[220px] flex-1" : previewSize === "lg" ? "h-32" : "h-20";
+
+  return (
+    <div className="flex min-h-0 flex-col rounded-md border border-passport-blue/15 bg-white/62 p-2.5">
+      <label className="block">
+        <span className="text-base font-black text-passport-blue">{label}</span>
+        <input
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className="mt-1.5 h-8 w-full rounded-md border border-passport-blue/15 bg-passport-paper px-2.5 text-xs font-bold text-passport-ink outline-none transition placeholder:text-passport-ink/35 focus:border-passport-blue"
+        />
+      </label>
+      <div className={`mt-2 flex items-center justify-center overflow-hidden rounded-md border border-dashed border-passport-blue/25 bg-passport-paper/65 ${previewClass}`}>
+        {value ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={value} alt={`${label} 미리보기`} className="h-full w-full object-contain" />
+        ) : (
+          <div className="flex items-center gap-1.5 text-xs font-black text-passport-ink/35">
+            <ImageIcon size={15} />
+            이미지 미리보기
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ContinentSelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  return (
+    <label className="block rounded-md border border-passport-blue/15 bg-white/62 p-2.5">
+      <span className="text-base font-black text-passport-blue">어느 대륙에 속하나요?</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-1.5 h-9 w-full rounded-md border border-passport-blue/15 bg-passport-paper px-2.5 text-sm font-bold text-passport-ink outline-none transition focus:border-passport-blue"
+      >
+        <option value="">대륙 선택</option>
+        {continentOptions.map((continent) => (
+          <option key={continent} value={continent}>
+            {continent}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function PageFooter({
+  pageNumber,
+  side,
+  previousDisabled = false,
+  completeLabel = false,
+  onPrevious,
+  onNext,
+}: {
+  pageNumber?: number;
+  side: "left" | "right";
+  previousDisabled?: boolean;
+  completeLabel?: boolean;
+  onPrevious?: () => void;
+  onNext?: () => void;
+}) {
+  return (
+    <footer className="mt-3 grid grid-cols-3 items-center">
+      <div className="justify-self-start">
+        {side === "left" && (
+          <button type="button" onClick={onPrevious} disabled={previousDisabled} className="workbook-turn-button disabled:cursor-not-allowed disabled:opacity-35" aria-label="이전 펼침">
+            <ArrowLeft size={18} />
+          </button>
+        )}
+      </div>
+      <p className="justify-self-center text-base font-black tracking-[0.24em] text-passport-blue/55">
+        {pageNumber ? `- ${pageNumber} -` : ""}
+      </p>
+      <div className="justify-self-end">
+        {side === "right" &&
+          (completeLabel ? null : (
+            <button type="button" onClick={onNext} className="workbook-turn-button" aria-label="다음 펼침">
+              <ArrowRight size={18} />
+            </button>
+          ))}
+      </div>
+    </footer>
+  );
+}
+
+function PassportBookmarks({ country }: { country: RepresentativeCountry }) {
+  const encodedCountry = countryPath(country.name);
+  const items = [
+    { label: "세계지도", href: "/worldmap", active: false, icon: Globe2 },
+    { label: "사증", href: "/stamp", active: false, icon: Stamp },
+    { label: "학습지", href: "/workbook", active: true, icon: BookOpen },
+    { label: "여행정보", href: "/travel-info", active: false, icon: MapPinned },
+  ];
+
+  return (
+    <nav className="passport-bookmarks" aria-label="여권 책갈피">
+      {items.map((item) => {
+        const Icon = item.icon;
+
+        return (
+          <Link key={item.label} href={item.href} className={`passport-bookmark ${item.active ? "is-active" : ""}`}>
+            <Icon size={15} />
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
   );
 }

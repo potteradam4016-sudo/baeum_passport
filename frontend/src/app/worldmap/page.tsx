@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { WorldMapGraphic } from "@/components/WorldMapGraphic";
-import { continents, countryPath, representativeCountries, type ContinentKey, type RepresentativeCountry } from "@/lib/countries";
+import { continents, countryPath, isWorkbookEligibleCountry, representativeCountries, type ContinentKey, type RepresentativeCountry } from "@/lib/countries";
 
 const continentImages: Record<ContinentKey, string> = {
   asia: "/images/asia.png",
@@ -54,7 +54,7 @@ export default function WorldMapPage() {
 
   return (
     <main className="passport-entry paper-surface flex h-screen items-center justify-center overflow-hidden p-4 sm:p-6">
-      <section className="passport-book-open passport-soft-enter passport-explorer-book" aria-label="세계 탐험 배움여권">
+      <section className="passport-book-open passport-soft-enter passport-explorer-book" aria-label="세계 여행 배움여권">
         <PassportBookmarks country={bookmarkCountry} />
 
         <div className="passport-page passport-page-left">
@@ -141,12 +141,11 @@ export default function WorldMapPage() {
 }
 
 function PassportBookmarks({ country }: { country: RepresentativeCountry }) {
-  const encodedCountry = countryPath(country.name);
   const items = [
     { label: "세계지도", href: "/worldmap", active: true, icon: Globe2 },
     { label: "사증", href: "/stamp", active: false, icon: Stamp },
-    { label: "학습지", href: `/workbook/${encodedCountry}`, active: false, icon: BookOpen },
-    { label: "여행정보", href: `/travel-info/${encodedCountry}`, active: false, icon: MapPinned },
+    { label: "학습지", href: "/workbook", active: false, icon: BookOpen },
+    { label: "여행정보", href: "/travel-info", active: false, icon: MapPinned },
   ];
 
   return (
@@ -199,17 +198,17 @@ function ContinentExplorer({
             key={country.name}
             type="button"
             onClick={() => onCountrySelect(country)}
-            className={`absolute z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full border bg-white/90 px-2 py-1 text-[10px] font-black text-passport-navy shadow transition hover:scale-105 hover:border-passport-gold hover:shadow-md ${
+            className={`absolute z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full border bg-white/90 px-2.5 py-1.5 text-xs font-black text-passport-navy shadow transition hover:scale-105 hover:border-passport-gold hover:shadow-md ${
               active ? "border-passport-gold ring-2 ring-passport-gold/70" : "border-white"
             }`}
             style={{ left: marker.left, top: marker.top }}
           >
-            <span className="h-3 w-3 rounded-full border border-white shadow" style={{ backgroundColor: country.color }} />
+            <span className="h-3.5 w-3.5 rounded-full border border-white shadow" style={{ backgroundColor: country.color }} />
             {country.name}
           </button>
         );
       })}
-      <div className="absolute left-3 top-3 rounded-md bg-passport-navy/82 px-3 py-2 text-sm font-black text-white shadow">
+      <div className="absolute left-3 top-3 rounded-md bg-passport-navy/82 px-3.5 py-2 text-sm font-black text-white shadow">
         {continents[continentKey].name}
       </div>
     </div>
@@ -218,23 +217,34 @@ function ContinentExplorer({
 
 function CountryDetail({ country }: { country: RepresentativeCountry }) {
   const isComparisonBase = country.name === "한국";
+  const canEnterImmigration = isWorkbookEligibleCountry(country);
 
   return (
     <section key={country.name} className="tab-fade flex min-h-0 flex-1 flex-col">
-      <div className="mb-5 flex items-center gap-4">
-        <div className="relative h-20 w-32 overflow-hidden rounded-md border border-passport-blue/15 shadow">
-          <Image src={country.flagImage} alt={`${country.name} 국기`} fill sizes="128px" className="object-cover" />
+      <div className="mb-6 flex items-start justify-between gap-5">
+        <div className="flex items-center gap-5">
+          <div className="relative h-28 w-44 overflow-hidden rounded-md border border-passport-blue/15 shadow">
+            <Image src={country.flagImage} alt={`${country.name} 국기`} fill sizes="176px" className="object-cover" />
+          </div>
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-passport-stamp">Country Record</p>
+            <h2 className="mt-2 text-4xl font-black text-passport-navy">{country.name}</h2>
+          </div>
         </div>
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-passport-stamp">Country Record</p>
-          <h2 className="mt-2 text-3xl font-black text-passport-navy">{country.name}</h2>
-        </div>
+        {canEnterImmigration && (
+          <Link
+            href={`/immi/${countryPath(country.name)}`}
+            className="inline-flex h-11 shrink-0 items-center justify-center rounded-md bg-passport-navy px-4 text-sm font-black text-white shadow transition hover:bg-passport-blue"
+          >
+            입국심사
+          </Link>
+        )}
       </div>
 
-      <div className="scroll-area min-h-0 flex-1 pr-1">
-        <p className="rounded-lg border border-passport-blue/15 bg-white/62 p-4 leading-7 text-passport-ink/78">{country.overview}</p>
+      <div className="scroll-area flex min-h-0 flex-1 flex-col pr-1">
+        <p className="rounded-lg border border-passport-blue/15 bg-white/62 p-5 text-base font-bold leading-8 text-passport-ink/78">{country.overview}</p>
 
-        <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="mt-5 grid flex-1 grid-cols-2 gap-4">
           <InfoTile label="수도" value={country.capital} />
           <InfoTile label="언어" value={country.language} />
           <InfoTile label="통화" value={country.currency} />
@@ -265,11 +275,25 @@ function EmptyCountryState({ selectedContinent }: { selectedContinent: Continent
 }
 
 function InfoTile({ label, value, note, compact = false }: { label: string; value: string; note?: string; compact?: boolean }) {
+  if (compact) {
+    return (
+      <div className="min-h-[96px] rounded-md bg-passport-blue/10 px-5 py-4">
+        <p className="pl-2 text-base font-black text-passport-blue">{label}</p>
+        <p className="mt-2 text-lg font-black text-passport-ink">{value}</p>
+        {note && <p className="mt-1 text-base font-bold text-passport-stamp">{note}</p>}
+      </div>
+    );
+  }
+
   return (
-    <div className={`rounded-md bg-passport-blue/10 ${compact ? "px-3 py-2" : "p-3"}`}>
-      <p className="text-xs font-black text-passport-blue">{label}</p>
-      <p className="mt-1 text-sm font-black text-passport-ink">{value}</p>
-      {note && <p className="mt-1 text-xs font-bold text-passport-stamp">{note}</p>}
+    <div className="flex min-h-[96px] flex-col rounded-md p-4">
+      <div className="border-y border-passport-blue/20 py-2">
+        <p className="text-base font-black text-passport-blue">{label}</p>
+      </div>
+      <div className="flex flex-1 flex-col justify-center pt-3">
+        <p className="text-lg font-black text-passport-ink">{value}</p>
+        {note && <p className="mt-2 text-base font-bold text-passport-stamp">{note}</p>}
+      </div>
     </div>
   );
 }

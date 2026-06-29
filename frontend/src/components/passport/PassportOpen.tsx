@@ -1,4 +1,4 @@
-import { ArrowLeft, Globe2, Stamp } from "lucide-react";
+import { ArrowLeft, Globe2 } from "lucide-react";
 import type { PassportMode } from "@/app/page";
 import { LoginForm } from "@/components/passport/LoginForm";
 import { SignupForm } from "@/components/passport/SignupForm";
@@ -22,7 +22,7 @@ export function PassportOpen({ mode, onModeChange }: PassportOpenProps) {
             표지로
           </button>
 
-          <div className="flex min-h-0 flex-1 flex-col justify-between">
+          <div className="relative flex min-h-0 flex-1 flex-col justify-between overflow-hidden">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.22em] text-passport-stamp">
                 Learning Passport
@@ -37,15 +37,14 @@ export function PassportOpen({ mode, onModeChange }: PassportOpenProps) {
               <Globe2 size={150} />
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-passport-stamp">
-              {["ENTRY", "STUDY", "STAMP", "WORLD"].map((label) => (
-                <div key={label} className="stamp-ring flex h-20 items-center justify-center text-center">
-                  <div>
-                    <Stamp size={20} className="mx-auto mb-1" />
-                    <p className="text-[10px] font-black">{label}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="relative z-10 rounded-lg border border-passport-blue/15 bg-white/45 p-5">
+              <div className="h-px w-full bg-passport-blue/20" />
+              <p className="mt-4 text-sm font-black uppercase tracking-[0.22em] text-passport-blue/55">
+                Passport No. BAEUM-001
+              </p>
+              <p className="mt-2 text-sm font-bold leading-6 text-passport-ink/62">
+                로그인하거나 새 여권을 만들면 세계지도에서 여행을 시작할 수 있습니다.
+              </p>
             </div>
           </div>
         </div>

@@ -34,7 +34,7 @@ export function Header() {
 
       <div className="flex items-center gap-3">
         <div className="hidden text-right sm:block">
-          <p className="text-sm font-semibold">{user?.name ?? "탐험가"}</p>
+          <p className="text-sm font-semibold">{user?.name ?? "여행가"}</p>
           <p className="text-xs text-blue-100">세계 여행 준비 완료</p>
         </div>
         <div className="flex h-10 w-10 items-center justify-center rounded-full border border-passport-gold/70 bg-passport-paper text-lg">

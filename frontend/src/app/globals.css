@@ -113,16 +113,16 @@ textarea {
 
 .passport-stage {
   display: flex;
-  height: min(720px, calc(100vh - 32px));
-  width: min(1040px, calc(100vw - 32px));
+  height: min(900px, calc(100vh - 32px));
+  width: min(1400px, calc(100vw - 32px));
   align-items: center;
   justify-content: center;
 }
 
 .passport-cover-closed {
   position: relative;
-  height: min(620px, calc(100vh - 42px));
-  width: min(430px, calc(100vw - 34px));
+  height: min(760px, calc(100vh - 42px));
+  width: min(520px, calc(100vw - 34px));
   overflow: hidden;
   border-radius: 18px;
   border: 1px solid rgba(214, 168, 59, 0.62);
@@ -180,8 +180,8 @@ textarea {
 .passport-book-open {
   position: relative;
   display: grid;
-  height: min(670px, calc(100vh - 34px));
-  width: min(1000px, calc(100vw - 32px));
+  height: min(860px, calc(100vh - 48px));
+  width: min(1320px, calc(100vw - 96px));
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   overflow: visible;
   border-radius: 18px;
@@ -189,12 +189,82 @@ textarea {
 }
 
 .passport-explorer-book {
-  width: min(1120px, calc(100vw - 64px));
+  height: min(900px, calc(100vh - 48px));
+  width: min(1400px, calc(100vw - 120px));
+}
+
+.workbook-book {
+  height: min(900px, calc(100vh - 48px));
+}
+
+.workbook-page-turn {
+  animation: workbook-page-turn 210ms ease-out both;
+}
+
+.workbook-turn-button {
+  display: inline-flex;
+  height: 40px;
+  width: 54px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid rgba(214, 168, 59, 0.68);
+  background: rgba(248, 241, 223, 0.72);
+  color: #102a5f;
+  padding: 0;
+  font-size: 15px;
+  font-weight: 900;
+  box-shadow: 0 10px 24px rgba(16, 42, 95, 0.08);
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease,
+    color 180ms ease;
+}
+
+.workbook-turn-button:hover:not(:disabled),
+.workbook-turn-button:focus-visible:not(:disabled) {
+  background: #d6a83b;
+  color: #0d203f;
+  box-shadow: 0 14px 28px rgba(16, 42, 95, 0.16);
+  transform: translateY(-1px);
+}
+
+.passport-book-open .text-\[10px\] {
+  font-size: 0.72rem;
+}
+
+.passport-book-open .text-\[11px\] {
+  font-size: 0.78rem;
+}
+
+.passport-book-open .text-xs {
+  font-size: 0.82rem;
+}
+
+.passport-book-open .text-sm {
+  font-size: 0.94rem;
+}
+
+.passport-book-open .text-base {
+  font-size: 1.06rem;
+}
+
+.passport-book-open .text-lg {
+  font-size: 1.2rem;
+}
+
+.passport-book-open .text-2xl {
+  font-size: 1.65rem;
+}
+
+.passport-book-open .text-3xl {
+  font-size: 2.05rem;
 }
 
 .passport-bookmarks {
   position: absolute;
-  right: -92px;
+  right: -126px;
   top: 38px;
   z-index: 8;
   display: grid;
@@ -203,17 +273,17 @@ textarea {
 
 .passport-bookmark {
   display: flex;
-  min-height: 42px;
-  width: 112px;
+  min-height: 48px;
+  width: 156px;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   border-radius: 0 10px 10px 0;
   border: 1px solid rgba(214, 168, 59, 0.55);
   border-left: 0;
   background: linear-gradient(135deg, #f8f1df, #ead8a6);
   color: #102a5f;
-  padding: 8px 10px 8px 18px;
-  font-size: 12px;
+  padding: 9px 12px 9px 20px;
+  font-size: 18px;
   font-weight: 900;
   box-shadow: 8px 12px 24px rgba(16, 42, 95, 0.18);
   transform: translateX(0);
@@ -262,7 +332,7 @@ textarea {
     radial-gradient(circle at 50% 38%, rgba(31, 79, 154, 0.08), transparent 25%),
     linear-gradient(rgba(248, 241, 223, 0.92), rgba(248, 241, 223, 0.92)),
     repeating-linear-gradient(0deg, rgba(19, 33, 60, 0.04) 0 1px, transparent 1px 8px);
-  padding: clamp(18px, 3vw, 34px);
+  padding: clamp(18px, 3vw, 40px);
 }
 
 .passport-page-left {
@@ -331,6 +401,17 @@ textarea {
   }
 }
 
+@keyframes workbook-page-turn {
+  0% {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 @media (max-width: 760px) {
   .passport-book-open {
     height: min(720px, calc(100vh - 28px));
@@ -349,11 +430,12 @@ textarea {
   }
 
   .passport-bookmark {
-    min-height: 34px;
+    min-height: 38px;
     width: auto;
     border-left: 1px solid rgba(214, 168, 59, 0.55);
     border-radius: 8px 8px 0 0;
-    padding: 7px 9px;
+    padding: 8px 10px;
+    font-size: 18px;
   }
 
   .passport-page-left {
@@ -362,6 +444,31 @@ textarea {
 
   .passport-page-right {
     border-radius: 18px;
+  }
+
+  .workbook-book {
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .workbook-book .passport-page-left {
+    display: flex;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .workbook-book .passport-page-right {
+    border-radius: 0 0 18px 18px;
+  }
+
+  .workbook-book .passport-page {
+    padding: 16px;
+  }
+
+  .workbook-turn-button {
+    height: 36px;
+    width: 46px;
+    padding: 0;
+    font-size: 12px;
   }
 
 }

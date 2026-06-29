@@ -18,6 +18,36 @@ export type TravelCountryInfo = {
   capital: string;
   continent: string;
   mapImage: string;
+  travelPurpose: string;
+  placesToVisit: string;
+  localPhrase: string;
+  travelTips: string;
+  landmark: string;
+  foodToTry: string;
+  packingList: string;
+  cautions: string;
+  weatherNote: string;
+  freeMemo: string;
+};
+
+export type WorkbookRecord = {
+  capital: string;
+  language: string;
+  population: string;
+  area: string;
+  populationComparison: string;
+  areaComparison: string;
+  flagImage: string;
+  mapImage: string;
+  flagObservation: string;
+  continent: string;
+  mapLocation: string;
+  greeting: string;
+  researchTopic: string;
+  similarityWithKorea: string;
+  differenceFromKorea: string;
+  question: string;
+  sources: string;
 };
 
 export type PassportState = {
@@ -27,6 +57,7 @@ export type PassportState = {
   addedCountries: string[];
   travelInfo: Record<string, TravelCountryInfo>;
   workbookNotes: Record<string, string>;
+  workbookRecords: Record<string, WorkbookRecord>;
 };
 
 const STORAGE_KEY = "baeum-passport-state";
@@ -38,6 +69,7 @@ export const defaultState: PassportState = {
   addedCountries: [],
   travelInfo: {},
   workbookNotes: {},
+  workbookRecords: {},
 };
 
 export function loadState(): PassportState {
