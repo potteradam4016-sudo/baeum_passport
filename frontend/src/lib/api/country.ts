@@ -56,14 +56,19 @@ export async function getCountry(id: number) {
 
 let countryCache: ApiCountry[] | null = null;
 
-export async function getCountryByName(name: string) {
-  if (!countryCache) {
+export async function getCountryByName(name: string, forceRefresh = false) {
+  if (!countryCache || forceRefresh) {
     countryCache = await getCountries();
   }
   return countryCache.find((country) => country.name === name) ?? null;
 }
 
-export async function getCountryIdByName(name: string) {
-  const country = await getCountryByName(name);
+export async function getCountryIdByName(name: string, forceRefresh = false) {
+  const country = await getCountryByName(name, forceRefresh);
   return country?.id ?? null;
+}
+
+export async function refreshCountryCache() {
+  countryCache = await getCountries();
+  return countryCache;
 }

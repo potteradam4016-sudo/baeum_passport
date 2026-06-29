@@ -3,7 +3,7 @@
 import { ArrowLeft, ArrowRight, BookOpen, BookOpenCheck, ChevronLeft, Globe2, ImageIcon, MapPinned, Stamp } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { countryPath, findCountry, isWorkbookEligibleCountry, representativeCountries, workbookCountries, type RepresentativeCountry } from "@/lib/countries";
 import { getCountryIdByName } from "@/lib/api/country";
 import { completeWorkbook as completeWorkbookApi, getWorkbook, saveWorkbook } from "@/lib/api/workbook";
@@ -57,9 +57,11 @@ export default function WorkbookPage({ params }: { params: { country: string } }
   const bookmarkCountry = useMemo(() => (country && isEligibleCountry ? country : workbookCountries[0] ?? representativeCountries[0]), [country, isEligibleCountry]);
   const [currentSpread, setCurrentSpread] = useState(0);
   const [record, setRecord] = useState<WorkbookRecord>(emptyRecord);
+  const recordRef = useRef<WorkbookRecord>(emptyRecord);
   const [countryId, setCountryId] = useState<number | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
   const [missingFields, setMissingFields] = useState<string[]>([]);
+  const [completionError, setCompletionError] = useState("");
   const [showAlreadyStampedModal, setShowAlreadyStampedModal] = useState(false);
 
   useEffect(() => {
@@ -77,12 +79,19 @@ export default function WorkbookPage({ params }: { params: { country: string } }
       setCountryId(nextCountryId);
       const result = await getWorkbook(nextCountryId);
       if (!isMounted) return;
-      setRecord({ ...emptyRecord, ...result.record });
+      const loadedRecord = { ...emptyRecord, ...result.record };
+      recordRef.current = loadedRecord;
+      setRecord(loadedRecord);
       setIsCompleted(result.completed);
     }
 
-    loadWorkbook().catch(() => {
-      if (isMounted) setRecord(emptyRecord);
+    loadWorkbook().catch((error) => {
+      console.error("Failed to load workbook.", { countryName, error });
+      if (isMounted) {
+        recordRef.current = emptyRecord;
+        setRecord(emptyRecord);
+        setCompletionError("학습지 정보를 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.");
+      }
     });
 
     return () => {
@@ -90,37 +99,103 @@ export default function WorkbookPage({ params }: { params: { country: string } }
     };
   }, [country, countryName, router]);
 
-  function persistRecord(nextRecord: WorkbookRecord) {
-    if (!countryId) return;
-    saveWorkbook(countryId, nextRecord).catch(() => undefined);
+  async function resolveCountryId() {
+    let resolvedCountryId = countryId;
+    if (!resolvedCountryId) {
+      resolvedCountryId = await getCountryIdByName(countryName, true);
+      if (resolvedCountryId) {
+        setCountryId(resolvedCountryId);
+      }
+    }
+
+    if (!resolvedCountryId) {
+      console.error("Cannot save workbook because countryId was not resolved.", { countryName });
+      setCompletionError("국가 정보를 찾지 못해 학습지를 저장할 수 없습니다. 새로고침 후 다시 시도해 주세요.");
+      return null;
+    }
+
+    return resolvedCountryId;
+  }
+
+  async function saveCurrentRecord(nextRecord = recordRef.current) {
+    setCompletionError("");
+    const resolvedCountryId = await resolveCountryId();
+    if (!resolvedCountryId) return null;
+    await saveWorkbook(resolvedCountryId, nextRecord);
+    return resolvedCountryId;
   }
 
   function updateField(field: keyof WorkbookRecord, value: string) {
     setRecord((current) => {
       const nextRecord = { ...current, [field]: value };
-      persistRecord(nextRecord);
+      recordRef.current = nextRecord;
       return nextRecord;
     });
   }
 
+  async function handlePreviousSpread() {
+    try {
+      const savedCountryId = await saveCurrentRecord();
+      if (!savedCountryId) return;
+      setCurrentSpread((spread) => Math.max(0, spread - 1));
+    } catch (error) {
+      console.error("Failed to save workbook before moving to previous spread.", { countryName, countryId, error });
+      setCompletionError("학습지 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+    }
+  }
+
+  async function handleNextSpread() {
+    try {
+      const savedCountryId = await saveCurrentRecord();
+      if (!savedCountryId) return;
+      setCurrentSpread((spread) => Math.min(2, spread + 1));
+    } catch (error) {
+      console.error("Failed to save workbook before moving to next spread.", { countryName, countryId, error });
+      setCompletionError("학습지 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+    }
+  }
+
+  async function handleWorkbookNavigation(event: MouseEvent<HTMLAnchorElement>, href: string, saveBeforeNavigate = true) {
+    event.preventDefault();
+
+    try {
+      if (saveBeforeNavigate) {
+        const savedCountryId = await saveCurrentRecord();
+        if (!savedCountryId) return;
+      }
+      router.push(href);
+    } catch (error) {
+      console.error("Failed to save workbook before navigation.", { countryName, countryId, href, error });
+      setCompletionError("학습지 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+    }
+  }
+
   async function completeWorkbook() {
-    if (isCompleted) {
-      setShowAlreadyStampedModal(true);
-      return;
+    try {
+      setCompletionError("");
+
+      if (isCompleted) {
+        setShowAlreadyStampedModal(true);
+        return;
+      }
+
+      const currentRecord = recordRef.current;
+      const missing = requiredWorkbookFields.filter(({ field }) => !currentRecord[field].trim()).map(({ label }) => label);
+
+      if (missing.length > 0) {
+        setMissingFields(missing);
+        return;
+      }
+
+      const resolvedCountryId = await saveCurrentRecord(currentRecord);
+      if (!resolvedCountryId) return;
+      await completeWorkbookApi(resolvedCountryId);
+      setIsCompleted(true);
+      router.push("/stamp");
+    } catch (error) {
+      console.error("Failed to complete workbook.", { countryName, countryId, error });
+      setCompletionError("학습지 완료 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
     }
-
-    const missing = requiredWorkbookFields.filter(({ field }) => !record[field].trim()).map(({ label }) => label);
-
-    if (missing.length > 0) {
-      setMissingFields(missing);
-      return;
-    }
-
-    if (!countryId) return;
-    await saveWorkbook(countryId, record);
-    await completeWorkbookApi(countryId);
-    setIsCompleted(true);
-    router.push("/stamp");
   }
 
   if (!country || !isEligibleCountry) {
@@ -138,6 +213,7 @@ export default function WorkbookPage({ params }: { params: { country: string } }
             <div className="passport-open-content justify-center">
               <Link
                 href="/workbook"
+                onClick={(event) => handleWorkbookNavigation(event, "/workbook", false)}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-passport-navy px-5 font-black text-white shadow transition hover:bg-passport-blue"
               >
                 <ArrowLeft size={18} />
@@ -156,18 +232,18 @@ export default function WorkbookPage({ params }: { params: { country: string } }
   return (
     <main className="passport-entry paper-surface flex h-screen items-center justify-center overflow-hidden p-4 sm:p-6">
       <section className="passport-book-open passport-soft-enter passport-explorer-book workbook-book" aria-label={`${country.name} 학습지`}>
-        <PassportBookmarks country={bookmarkCountry} />
+        <PassportBookmarks country={bookmarkCountry} onNavigate={handleWorkbookNavigation} />
 
         <div className="passport-page passport-page-left">
           <div key={`left-spread-${currentSpread}`} className="passport-open-content workbook-page-turn">
-            {currentSpread === 0 && <BasicInfoPage country={country} record={record} onChange={updateField} />}
-            {currentSpread === 1 && <MapLocationPage country={country} record={record} onChange={updateField} />}
-            {currentSpread === 2 && <DeepResearchPage country={country} record={record} onChange={updateField} />}
+            {currentSpread === 0 && <BasicInfoPage country={country} record={record} onChange={updateField} onNavigate={handleWorkbookNavigation} />}
+            {currentSpread === 1 && <MapLocationPage country={country} record={record} onChange={updateField} onNavigate={handleWorkbookNavigation} />}
+            {currentSpread === 2 && <DeepResearchPage country={country} record={record} onChange={updateField} onNavigate={handleWorkbookNavigation} />}
             <PageFooter
               pageNumber={currentSpread === 0 ? 1 : currentSpread === 1 ? 3 : 5}
               side="left"
               previousDisabled={isFirstSpread}
-              onPrevious={() => setCurrentSpread((spread) => Math.max(0, spread - 1))}
+              onPrevious={handlePreviousSpread}
             />
           </div>
         </div>
@@ -181,15 +257,31 @@ export default function WorkbookPage({ params }: { params: { country: string } }
               pageNumber={currentSpread === 0 ? 2 : currentSpread === 1 ? 4 : undefined}
               side="right"
               completeLabel={isLastSpread}
-              onNext={() => setCurrentSpread((spread) => Math.min(2, spread + 1))}
+              onNext={handleNextSpread}
             />
           </div>
         </div>
 
         {missingFields.length > 0 && <MissingFieldsModal fields={missingFields} onClose={() => setMissingFields([])} />}
+        {completionError && <CompletionErrorModal message={completionError} onClose={() => setCompletionError("")} />}
         {showAlreadyStampedModal && <AlreadyStampedModal countryName={country.name} onClose={() => setShowAlreadyStampedModal(false)} />}
       </section>
     </main>
+  );
+}
+
+function CompletionErrorModal({ message, onClose }: { message: string; onClose: () => void }) {
+  return (
+    <div className="absolute inset-0 z-30 flex items-center justify-center bg-passport-navy/30 px-6">
+      <section className="w-full max-w-sm rounded-lg border border-passport-gold/50 bg-passport-paper p-6 text-center shadow-2xl">
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-passport-stamp">Workbook Error</p>
+        <h2 className="mt-3 text-2xl font-black text-passport-navy">스탬프를 받을 수 없습니다</h2>
+        <p className="mt-3 text-sm font-bold leading-6 text-passport-ink/70">{message}</p>
+        <button type="button" onClick={onClose} className="mt-6 h-11 rounded-md bg-passport-navy px-6 font-black text-white shadow transition hover:bg-passport-blue">
+          확인
+        </button>
+      </section>
+    </div>
   );
 }
 
@@ -239,12 +331,14 @@ function WorkbookPageHeader({
   subtitle,
   country,
   showBackLink = false,
+  onNavigate,
 }: {
   pageNumber: number;
   title: string;
   subtitle: string;
   country?: RepresentativeCountry;
   showBackLink?: boolean;
+  onNavigate?: (event: MouseEvent<HTMLAnchorElement>, href: string) => void;
 }) {
   return (
     <header className="mb-3 flex items-start justify-between gap-3">
@@ -256,6 +350,7 @@ function WorkbookPageHeader({
       {showBackLink ? (
         <Link
           href="/workbook"
+          onClick={onNavigate ? (event) => onNavigate(event, "/workbook") : undefined}
           className="inline-flex h-11 items-center gap-2 rounded-md border border-passport-blue/20 px-3 text-sm font-bold text-passport-blue transition hover:bg-passport-blue/10"
         >
           <ChevronLeft size={17} />
@@ -272,14 +367,16 @@ function BasicInfoPage({
   country,
   record,
   onChange,
+  onNavigate,
 }: {
   country: RepresentativeCountry;
   record: WorkbookRecord;
   onChange: (field: keyof WorkbookRecord, value: string) => void;
+  onNavigate: (event: MouseEvent<HTMLAnchorElement>, href: string) => void;
 }) {
   return (
     <>
-      <WorkbookPageHeader pageNumber={1} title="국가 기본 정보" subtitle="나라의 핵심 정보를 조사해 학습지 작성칸에 정리하세요." country={country} showBackLink />
+      <WorkbookPageHeader pageNumber={1} title="국가 기본 정보" subtitle="나라의 핵심 정보를 조사해 학습지 작성칸에 정리하세요." country={country} showBackLink onNavigate={onNavigate} />
       <section className="grid min-h-0 flex-1 grid-cols-2 grid-rows-3 gap-3">
         <LargeField label="수도" value={record.capital} onChange={(value) => onChange("capital", value)} placeholder="조사해서 적어 보세요" />
         <LargeField label="사용 언어" value={record.language} onChange={(value) => onChange("language", value)} placeholder="예: 영어, 일본어" />
@@ -320,14 +417,16 @@ function MapLocationPage({
   country,
   record,
   onChange,
+  onNavigate,
 }: {
   country: RepresentativeCountry;
   record: WorkbookRecord;
   onChange: (field: keyof WorkbookRecord, value: string) => void;
+  onNavigate: (event: MouseEvent<HTMLAnchorElement>, href: string) => void;
 }) {
   return (
     <>
-      <WorkbookPageHeader pageNumber={3} title="지도와 위치" subtitle="지도에서 나라가 세계 어디에 있는지 찾아보세요." country={country} showBackLink />
+      <WorkbookPageHeader pageNumber={3} title="지도와 위치" subtitle="지도에서 나라가 세계 어디에 있는지 찾아보세요." country={country} showBackLink onNavigate={onNavigate} />
       <section className="grid min-h-0 flex-1 grid-rows-[1.25fr_auto_1fr] gap-3">
         <ImageUrlField label="지도 이미지 URL" value={record.mapImage} onChange={(value) => onChange("mapImage", value)} placeholder="지도 이미지 주소" previewSize="xl" />
         <ContinentSelect value={record.continent} onChange={(value) => onChange("continent", value)} />
@@ -385,14 +484,16 @@ function DeepResearchPage({
   country,
   record,
   onChange,
+  onNavigate,
 }: {
   country: RepresentativeCountry;
   record: WorkbookRecord;
   onChange: (field: keyof WorkbookRecord, value: string) => void;
+  onNavigate: (event: MouseEvent<HTMLAnchorElement>, href: string) => void;
 }) {
   return (
     <>
-      <WorkbookPageHeader pageNumber={5} title="심화 탐구" subtitle="더 깊이 알아보고 싶은 내용과 참고한 자료를 정리하세요." country={country} showBackLink />
+      <WorkbookPageHeader pageNumber={5} title="심화 탐구" subtitle="더 깊이 알아보고 싶은 내용과 참고한 자료를 정리하세요." country={country} showBackLink onNavigate={onNavigate} />
       <section className="grid min-h-0 flex-1 grid-rows-[1fr_auto] gap-3">
         <TextArea
           label="더 궁금한 점"
@@ -612,7 +713,13 @@ function PageFooter({
   );
 }
 
-function PassportBookmarks({ country }: { country: RepresentativeCountry }) {
+function PassportBookmarks({
+  country,
+  onNavigate,
+}: {
+  country: RepresentativeCountry;
+  onNavigate: (event: MouseEvent<HTMLAnchorElement>, href: string) => void;
+}) {
   const encodedCountry = countryPath(country.name);
   const items = [
     { label: "세계지도", href: "/worldmap", active: false, icon: Globe2 },
@@ -627,7 +734,7 @@ function PassportBookmarks({ country }: { country: RepresentativeCountry }) {
         const Icon = item.icon;
 
         return (
-          <Link key={item.label} href={item.href} className={`passport-bookmark ${item.active ? "is-active" : ""}`}>
+          <Link key={item.label} href={item.href} onClick={(event) => onNavigate(event, item.href)} className={`passport-bookmark ${item.active ? "is-active" : ""}`}>
             <Icon size={15} />
             <span>{item.label}</span>
           </Link>

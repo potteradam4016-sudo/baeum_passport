@@ -34,14 +34,14 @@ public class AuthService {
 
     @Transactional
     public AuthResponseDto signup(SignupRequestDto request) {
-        String username = request.getBirthDate() + request.getLastName() + request.getFirstName();
+        String username = request.getBirthDate().replace("-", "") + request.getLastName() + request.getFirstName();
 
         if (userRepository.existsByUsername(username)) {
             throw new DuplicateResourceException("이미 존재하는 계정입니다.");
         }
 
         String name = request.getLastName() + request.getFirstName();
-        String encodedPassword = passwordEncoder.encode(request.getBirthDate());
+        String encodedPassword = passwordEncoder.encode(request.getBirthDate().replace("-", ""));
         User user = new User(
                 username,
                 encodedPassword,

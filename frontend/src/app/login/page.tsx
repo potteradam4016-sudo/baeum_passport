@@ -4,17 +4,25 @@ import { LogIn } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { LoginFailureModal } from "@/components/passport/LoginFailureModal";
 import { login } from "@/lib/api/auth";
 
 export default function LoginPage() {
   const router = useRouter();
   const [id, setId] = useState("");
   const [password, setPassword] = useState("");
+  const [showLoginFailureModal, setShowLoginFailureModal] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await login(id, password);
-    router.push("/worldmap");
+    try {
+      setShowLoginFailureModal(false);
+      await login(id, password);
+      router.push("/worldmap");
+    } catch (error) {
+      console.error("Failed to login.", error);
+      setShowLoginFailureModal(true);
+    }
   }
 
   return (
@@ -31,7 +39,7 @@ export default function LoginPage() {
             value={id}
             onChange={(event) => setId(event.target.value)}
             className="mt-2 h-12 w-full rounded-md border border-passport-blue/20 bg-white px-3 outline-none focus:border-passport-blue"
-            placeholder="student01"
+            placeholder="20030101홍길동"
           />
         </label>
         <label className="mt-4 block text-sm font-bold text-passport-ink">
@@ -41,7 +49,7 @@ export default function LoginPage() {
             onChange={(event) => setPassword(event.target.value)}
             type="password"
             className="mt-2 h-12 w-full rounded-md border border-passport-blue/20 bg-white px-3 outline-none focus:border-passport-blue"
-            placeholder="••••••••"
+            placeholder="생년월일 8자리"
           />
         </label>
         <button className="mt-7 inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-passport-blue font-bold text-white transition hover:bg-passport-navy">
@@ -52,6 +60,7 @@ export default function LoginPage() {
           아직 여권이 없다면 회원가입
         </Link>
       </form>
+      {showLoginFailureModal && <LoginFailureModal onClose={() => setShowLoginFailureModal(false)} />}
     </main>
   );
 }
