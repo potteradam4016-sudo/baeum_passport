@@ -56,7 +56,7 @@ export default function MyPassportPage() {
 
   return (
     <main className="passport-entry paper-surface flex h-screen items-center justify-center overflow-hidden p-4 sm:p-6">
-      <section className="passport-book-open passport-soft-enter passport-explorer-book workbook-book" aria-label="내 여권 보기">
+      <section className="passport-book-open passport-soft-enter passport-explorer-book workbook-book" aria-label="여권 보기">
         <PassportBookmarks />
         <LogoutBookmark />
 
@@ -144,7 +144,7 @@ function PassportBookmarks() {
     { label: "사증", href: "/stamp", active: false, icon: Stamp },
     { label: "학습지", href: "/workbook", active: false, icon: BookOpen },
     { label: "여행정보", href: "/travel-info", active: false, icon: MapPinned },
-    { label: "내 여권 보기", href: "/mypage/passport", active: true, icon: BookOpen },
+    { label: "여권 보기", href: "/mypage/passport", active: true, icon: BookOpen },
   ];
 
   return (
