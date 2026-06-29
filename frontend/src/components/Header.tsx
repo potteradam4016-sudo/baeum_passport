@@ -4,19 +4,18 @@ import { LogOut, Stamp } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { loadState, saveState, type User } from "@/lib/storage";
+import { getMe, logout, type AuthUser } from "@/lib/api/auth";
 
 export function Header() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
-    setUser(loadState().user);
+    getMe().then(setUser).catch(() => setUser(null));
   }, []);
 
-  function handleLogout() {
-    const state = loadState();
-    saveState({ ...state, user: null });
+  async function handleLogout() {
+    await logout();
     router.push("/");
   }
 

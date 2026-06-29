@@ -27,6 +27,45 @@ public class Workbook {
     @Column(name = "country_id")
     private Long countryId;
 
+    private String capital;
+    private String language;
+    private String population;
+    private String area;
+
+    @Column(name = "population_comparison")
+    private String populationComparison;
+
+    @Column(name = "area_comparison")
+    private String areaComparison;
+
+    @Column(name = "flag_image")
+    private String flagImage;
+
+    @Column(name = "map_image")
+    private String mapImage;
+
+    @Column(name = "flag_observation")
+    private String flagObservation;
+
+    private String continent;
+
+    @Column(name = "map_location")
+    private String mapLocation;
+
+    private String greeting;
+
+    @Column(name = "research_topic")
+    private String researchTopic;
+
+    @Column(name = "similarity_with_korea")
+    private String similarityWithKorea;
+
+    @Column(name = "difference_from_korea")
+    private String differenceFromKorea;
+
+    private String question;
+    private String sources;
+
     private String overview;
 
     @Column(name = "map_note")

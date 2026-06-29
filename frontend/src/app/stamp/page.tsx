@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, BookOpen, Globe2, MapPinned, Stamp } from "lucid
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { findCountry, isWorkbookEligibleCountry, type RepresentativeCountry } from "@/lib/countries";
-import { loadState } from "@/lib/storage";
+import { getStamps } from "@/lib/api/stamp";
 
 type StampAsset = {
   src: string;
@@ -47,7 +47,9 @@ export default function StampPage() {
   const [currentSpread, setCurrentSpread] = useState(0);
 
   useEffect(() => {
-    setCompleted(loadState().workbookCompleted);
+    getStamps()
+      .then((stamps) => setCompleted(stamps.map((stamp) => stamp.country_name)))
+      .catch(() => setCompleted([]));
   }, []);
 
   const completedCountries = useMemo(

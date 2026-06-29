@@ -8,10 +8,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "countries")
 @Getter
+@Setter
 @NoArgsConstructor
 public class Country {
 
@@ -41,4 +43,23 @@ public class Country {
 
     @Column(name = "is_featured")
     private Integer isFeatured;
+
+    private String currency;
+
+    @Column(name = "area_comparison")
+    private String areaComparison;
+
+    @Column(name = "population_comparison")
+    private String populationComparison;
+
+    private String greeting;
+    private String overview;
+
+    @Column(name = "map_note")
+    private String mapNote;
+
+    private String clothing;
+    private String food;
+    private String house;
+    private String color;
 }

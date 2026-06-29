@@ -4,7 +4,7 @@ import { UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { loadState, saveState } from "@/lib/storage";
+import { signup } from "@/lib/api/auth";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -22,20 +22,9 @@ export default function SignupPage() {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const fullName = `${form.lastName}${form.firstName}`.trim() || "배움이";
-    const state = loadState();
-    saveState({
-      ...state,
-      user: {
-        id: `${form.grade || "0"}-${form.classNumber || "0"}-${form.studentNumber || "0"}`,
-        name: fullName,
-        grade: form.grade,
-        classNumber: form.classNumber,
-        studentNumber: form.studentNumber,
-      },
-    });
+    await signup(form);
     router.push("/login");
   }
 

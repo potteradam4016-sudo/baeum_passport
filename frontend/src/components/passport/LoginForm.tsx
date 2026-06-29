@@ -3,23 +3,16 @@
 import { LogIn } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { loadState, saveState } from "@/lib/storage";
+import { login } from "@/lib/api/auth";
 
 export function LoginForm() {
   const router = useRouter();
   const [id, setId] = useState("");
   const [password, setPassword] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const state = loadState();
-    saveState({
-      ...state,
-      user: {
-        id: id || "student",
-        name: state.user?.name || id || "배움이",
-      },
-    });
+    await login(id, password);
     router.push("/worldmap");
   }
 

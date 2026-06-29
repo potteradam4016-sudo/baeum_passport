@@ -17,7 +17,7 @@ const continentImages: Record<ContinentKey, string> = {
 };
 
 const countryMapMarkers: Record<string, { left: string; top: string }> = {
-  한국: { left: "60%", top: "55%" },
+  대한민국: { left: "60%", top: "55%" },
   일본: { left: "68%", top: "52%" },
   중국: { left: "54%", top: "60%" },
   영국: { left: "34%", top: "47%" },
@@ -216,7 +216,7 @@ function ContinentExplorer({
 }
 
 function CountryDetail({ country }: { country: RepresentativeCountry }) {
-  const isComparisonBase = country.name === "한국";
+  const isComparisonBase = country.name === "대한민국";
   const canEnterImmigration = isWorkbookEligibleCountry(country);
 
   return (

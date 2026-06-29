@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { findCountry } from "@/lib/countries";
-import { loadState, saveState, type TravelCountryInfo } from "@/lib/storage";
+import { createTravelInfo, deleteTravelInfo as deleteTravelInfoApi, getTravelInfo, updateTravelInfo } from "@/lib/api/travel";
+import type { TravelCountryInfo } from "@/lib/storage";
 
 const emptyInfo: TravelCountryInfo = {
   countryName: "",
@@ -37,21 +38,30 @@ export default function TravelInfoPage({ params }: { params: { country: string }
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   useEffect(() => {
-    const saved = loadState().travelInfo[countryName];
-    setInfo({
-      ...emptyInfo,
-      ...(saved ?? {}),
-      countryName: saved?.countryName ?? countryName,
-      displayName: saved?.displayName ?? countryName,
-    });
+    let isMounted = true;
+
+    getTravelInfo(countryName)
+      .then((saved) => {
+        if (!isMounted) return;
+        setInfo({
+          ...emptyInfo,
+          ...saved,
+          countryName: saved.countryName ?? countryName,
+          displayName: saved.displayName ?? countryName,
+        });
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setInfo({ ...emptyInfo, countryName, displayName: countryName });
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, [countryName]);
 
   function persist(nextInfo: TravelCountryInfo) {
-    const current = loadState();
-    saveState({
-      ...current,
-      travelInfo: { ...current.travelInfo, [countryName]: nextInfo },
-    });
+    updateTravelInfo(countryName, nextInfo).catch(() => createTravelInfo(nextInfo).catch(() => undefined));
   }
 
   function update(field: keyof TravelCountryInfo, value: string) {
@@ -62,24 +72,13 @@ export default function TravelInfoPage({ params }: { params: { country: string }
     });
   }
 
-  function saveTravelInfo() {
-    persist(info);
+  async function saveTravelInfo() {
+    await updateTravelInfo(countryName, info).catch(() => createTravelInfo(info));
     router.push("/travel-info");
   }
 
-  function deleteTravelInfo() {
-    const current = loadState();
-    const nextTravelInfo = { ...current.travelInfo };
-    delete nextTravelInfo[countryName];
-    if (info.countryName && info.countryName !== countryName) {
-      delete nextTravelInfo[info.countryName];
-    }
-
-    saveState({
-      ...current,
-      travelInfo: nextTravelInfo,
-    });
-
+  async function deleteTravelInfo() {
+    await deleteTravelInfoApi(countryName);
     router.push("/travel-info");
   }
 

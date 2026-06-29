@@ -39,9 +39,12 @@ public class WorkbookService {
         this.authUtil = authUtil;
     }
 
+    @Transactional
     public WorkbookDto getWorkbook(Long countryId) {
         Long userId = authUtil.getCurrentUserId();
-        return toDto(findByUserIdAndCountryId(userId, countryId));
+        Workbook workbook = workbookRepository.findByUserIdAndCountryId(userId, countryId)
+                .orElseGet(() -> createEmptyWorkbook(userId, countryId));
+        return toDto(workbook);
     }
 
     @Transactional
@@ -71,24 +74,7 @@ public class WorkbookService {
         Long userId = authUtil.getCurrentUserId();
         Workbook workbook = findByUserIdAndCountryId(userId, countryId);
 
-        if (request.getOverview() != null) {
-            workbook.setOverview(request.getOverview());
-        }
-        if (request.getMapNote() != null) {
-            workbook.setMapNote(request.getMapNote());
-        }
-        if (request.getFlagNote() != null) {
-            workbook.setFlagNote(request.getFlagNote());
-        }
-        if (request.getTraditionalClothing() != null) {
-            workbook.setTraditionalClothing(request.getTraditionalClothing());
-        }
-        if (request.getTraditionalFood() != null) {
-            workbook.setTraditionalFood(request.getTraditionalFood());
-        }
-        if (request.getTraditionalHouse() != null) {
-            workbook.setTraditionalHouse(request.getTraditionalHouse());
-        }
+        applyUpdate(workbook, request);
 
         return toDto(workbookRepository.save(workbook));
     }
@@ -115,6 +101,71 @@ public class WorkbookService {
         return new WorkbookCompleteResponse(toDto(savedWorkbook), stampCreated);
     }
 
+    private Workbook createEmptyWorkbook(Long userId, Long countryId) {
+        countryRepository.findById(countryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Country not found."));
+
+        Workbook workbook = new Workbook();
+        workbook.setUserId(userId);
+        workbook.setCountryId(countryId);
+        workbook.setCompleted(0);
+        return workbookRepository.save(workbook);
+    }
+
+    private void applyUpdate(Workbook workbook, WorkbookUpdateRequest request) {
+        if (request.getCapital() != null) {
+            workbook.setCapital(request.getCapital());
+        }
+        if (request.getLanguage() != null) {
+            workbook.setLanguage(request.getLanguage());
+        }
+        if (request.getPopulation() != null) {
+            workbook.setPopulation(request.getPopulation());
+        }
+        if (request.getArea() != null) {
+            workbook.setArea(request.getArea());
+        }
+        if (request.getPopulationComparison() != null) {
+            workbook.setPopulationComparison(request.getPopulationComparison());
+        }
+        if (request.getAreaComparison() != null) {
+            workbook.setAreaComparison(request.getAreaComparison());
+        }
+        if (request.getFlagImage() != null) {
+            workbook.setFlagImage(request.getFlagImage());
+        }
+        if (request.getMapImage() != null) {
+            workbook.setMapImage(request.getMapImage());
+        }
+        if (request.getFlagObservation() != null) {
+            workbook.setFlagObservation(request.getFlagObservation());
+        }
+        if (request.getContinent() != null) {
+            workbook.setContinent(request.getContinent());
+        }
+        if (request.getMapLocation() != null) {
+            workbook.setMapLocation(request.getMapLocation());
+        }
+        if (request.getGreeting() != null) {
+            workbook.setGreeting(request.getGreeting());
+        }
+        if (request.getResearchTopic() != null) {
+            workbook.setResearchTopic(request.getResearchTopic());
+        }
+        if (request.getSimilarityWithKorea() != null) {
+            workbook.setSimilarityWithKorea(request.getSimilarityWithKorea());
+        }
+        if (request.getDifferenceFromKorea() != null) {
+            workbook.setDifferenceFromKorea(request.getDifferenceFromKorea());
+        }
+        if (request.getQuestion() != null) {
+            workbook.setQuestion(request.getQuestion());
+        }
+        if (request.getSources() != null) {
+            workbook.setSources(request.getSources());
+        }
+    }
+
     private Workbook findByUserIdAndCountryId(Long userId, Long countryId) {
         return workbookRepository.findByUserIdAndCountryId(userId, countryId)
                 .orElseThrow(() -> new ResourceNotFoundException("학습지를 찾을 수 없습니다."));
@@ -124,12 +175,23 @@ public class WorkbookService {
         return new WorkbookDto(
                 workbook.getId(),
                 workbook.getCountryId(),
-                workbook.getOverview(),
-                workbook.getMapNote(),
-                workbook.getFlagNote(),
-                workbook.getTraditionalClothing(),
-                workbook.getTraditionalFood(),
-                workbook.getTraditionalHouse(),
+                workbook.getCapital(),
+                workbook.getLanguage(),
+                workbook.getPopulation(),
+                workbook.getArea(),
+                workbook.getPopulationComparison(),
+                workbook.getAreaComparison(),
+                workbook.getFlagImage(),
+                workbook.getMapImage(),
+                workbook.getFlagObservation(),
+                workbook.getContinent(),
+                workbook.getMapLocation(),
+                workbook.getGreeting(),
+                workbook.getResearchTopic(),
+                workbook.getSimilarityWithKorea(),
+                workbook.getDifferenceFromKorea(),
+                workbook.getQuestion(),
+                workbook.getSources(),
                 workbook.getCompleted(),
                 workbook.getCompletedAt());
     }

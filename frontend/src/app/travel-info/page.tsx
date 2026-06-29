@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { countryPath } from "@/lib/countries";
-import { loadState, saveState, type TravelCountryInfo } from "@/lib/storage";
+import { createTravelInfo, getTravelInfos } from "@/lib/api/travel";
+import type { TravelCountryInfo } from "@/lib/storage";
 
 const emptyInfo: TravelCountryInfo = {
   countryName: "",
@@ -36,27 +37,24 @@ export default function TravelInfoIndexPage() {
   const [countryName, setCountryName] = useState("");
 
   useEffect(() => {
-    const state = loadState();
-    setTravelInfos(Object.values(state.travelInfo));
+    getTravelInfos().then(setTravelInfos).catch(() => setTravelInfos([]));
   }, []);
 
-  function addCountry(event: FormEvent<HTMLFormElement>) {
+  async function addCountry(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmedName = countryName.trim();
     if (!trimmedName) return;
 
-    const state = loadState();
-    const currentInfo = state.travelInfo[trimmedName];
+    const currentInfo = travelInfos.find((info) => info.countryName === trimmedName);
     const nextInfo: TravelCountryInfo = currentInfo ?? {
       ...emptyInfo,
       countryName: trimmedName,
       displayName: trimmedName,
     };
 
-    saveState({
-      ...state,
-      travelInfo: { ...state.travelInfo, [trimmedName]: nextInfo },
-    });
+    if (!currentInfo) {
+      await createTravelInfo(nextInfo);
+    }
 
     router.push(`/travel-info/${countryPath(trimmedName)}`);
   }

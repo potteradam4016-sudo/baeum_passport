@@ -44,7 +44,7 @@ export const continents: Record<
     area: "약 4,458만 km²",
     countryCount: 49,
     color: "#4f75d6",
-    countries: ["한국", "일본", "중국"],
+    countries: ["대한민국", "일본", "중국"],
   },
   europe: {
     name: "유럽",
@@ -90,7 +90,7 @@ export const continents: Record<
 
 export const representativeCountries: RepresentativeCountry[] = [
   {
-    name: "한국",
+    name: "대한민국",
     continent: "asia",
     flag: "🇰🇷",
     flagImage: "https://flagcdn.com/w320/kr.png",

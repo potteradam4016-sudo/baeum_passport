@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { countryPath, findCountry, isWorkbookEligibleCountry, representativeCountries, workbookCountries, type RepresentativeCountry } from "@/lib/countries";
-import { addUnique, loadState, saveState, type WorkbookRecord } from "@/lib/storage";
+import { getCountryIdByName } from "@/lib/api/country";
+import { completeWorkbook as completeWorkbookApi, getWorkbook, saveWorkbook } from "@/lib/api/workbook";
+import type { WorkbookRecord } from "@/lib/storage";
 
 const continentOptions = ["아시아", "유럽", "북아메리카", "남아메리카", "아프리카", "오세아니아"];
 
@@ -43,8 +45,8 @@ const requiredWorkbookFields: Array<{ field: keyof WorkbookRecord; label: string
   { field: "mapLocation", label: "세계 속 위치" },
   { field: "greeting", label: "현지 인사말" },
   { field: "researchTopic", label: "대표 조사 주제" },
-  { field: "similarityWithKorea", label: "한국과 비슷한 점" },
-  { field: "differenceFromKorea", label: "한국과 다른 점" },
+  { field: "similarityWithKorea", label: "대한민국과 비슷한 점" },
+  { field: "differenceFromKorea", label: "대한민국과 다른 점" },
 ];
 
 export default function WorkbookPage({ params }: { params: { country: string } }) {
@@ -55,32 +57,42 @@ export default function WorkbookPage({ params }: { params: { country: string } }
   const bookmarkCountry = useMemo(() => (country && isEligibleCountry ? country : workbookCountries[0] ?? representativeCountries[0]), [country, isEligibleCountry]);
   const [currentSpread, setCurrentSpread] = useState(0);
   const [record, setRecord] = useState<WorkbookRecord>(emptyRecord);
+  const [countryId, setCountryId] = useState<number | null>(null);
+  const [isCompleted, setIsCompleted] = useState(false);
   const [missingFields, setMissingFields] = useState<string[]>([]);
   const [showAlreadyStampedModal, setShowAlreadyStampedModal] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+
     if (country && !isWorkbookEligibleCountry(country)) {
       router.replace("/workbook");
       return;
     }
 
-    const state = loadState();
-    const savedRecord = state.workbookRecords?.[countryName] as (WorkbookRecord & { continentLocation?: string; newKnowledge?: string }) | undefined;
-    setRecord({
-      ...emptyRecord,
-      ...(savedRecord ?? {}),
-      continent: savedRecord?.continent ?? savedRecord?.continentLocation ?? "",
-      question: savedRecord?.question ?? savedRecord?.newKnowledge ?? state.workbookNotes[countryName] ?? "",
+    async function loadWorkbook() {
+      const nextCountryId = await getCountryIdByName(countryName);
+      if (!isMounted || !nextCountryId) return;
+
+      setCountryId(nextCountryId);
+      const result = await getWorkbook(nextCountryId);
+      if (!isMounted) return;
+      setRecord({ ...emptyRecord, ...result.record });
+      setIsCompleted(result.completed);
+    }
+
+    loadWorkbook().catch(() => {
+      if (isMounted) setRecord(emptyRecord);
     });
+
+    return () => {
+      isMounted = false;
+    };
   }, [country, countryName, router]);
 
   function persistRecord(nextRecord: WorkbookRecord) {
-    const current = loadState();
-    saveState({
-      ...current,
-      workbookRecords: { ...(current.workbookRecords ?? {}), [countryName]: nextRecord },
-      workbookNotes: { ...current.workbookNotes, [countryName]: nextRecord.question },
-    });
+    if (!countryId) return;
+    saveWorkbook(countryId, nextRecord).catch(() => undefined);
   }
 
   function updateField(field: keyof WorkbookRecord, value: string) {
@@ -91,10 +103,8 @@ export default function WorkbookPage({ params }: { params: { country: string } }
     });
   }
 
-  function completeWorkbook() {
-    const current = loadState();
-
-    if (current.workbookCompleted.includes(countryName)) {
+  async function completeWorkbook() {
+    if (isCompleted) {
       setShowAlreadyStampedModal(true);
       return;
     }
@@ -106,12 +116,10 @@ export default function WorkbookPage({ params }: { params: { country: string } }
       return;
     }
 
-    saveState({
-      ...current,
-      workbookCompleted: addUnique(current.workbookCompleted, countryName),
-      workbookRecords: { ...(current.workbookRecords ?? {}), [countryName]: record },
-      workbookNotes: { ...current.workbookNotes, [countryName]: record.question },
-    });
+    if (!countryId) return;
+    await saveWorkbook(countryId, record);
+    await completeWorkbookApi(countryId);
+    setIsCompleted(true);
     router.push("/stamp");
   }
 
@@ -344,7 +352,7 @@ function CountryResearchPage({
 }) {
   return (
     <>
-      <WorkbookPageHeader pageNumber={4} title="국가 조사와 한국 비교" subtitle="조사한 내용을 바탕으로 한국과 비교해 보세요." />
+      <WorkbookPageHeader pageNumber={4} title="국가 조사와 대한민국 비교" subtitle="조사한 내용을 바탕으로 대한민국과 비교해 보세요." />
       <section className="grid min-h-0 flex-1 grid-rows-[auto_1.5fr_1fr_1fr] gap-3">
         <Field label="현지 인사말" value={record.greeting} onChange={(value) => onChange("greeting", value)} placeholder="현지 언어 인사말" />
         <TextArea
@@ -355,14 +363,14 @@ function CountryResearchPage({
           rows={6}
         />
         <TextArea
-          label="한국과 비슷한 점"
+          label="대한민국과 비슷한 점"
           value={record.similarityWithKorea}
           onChange={(value) => onChange("similarityWithKorea", value)}
           placeholder="비슷하다고 느낀 점"
           rows={5}
         />
         <TextArea
-          label="한국과 다른 점"
+          label="대한민국과 다른 점"
           value={record.differenceFromKorea}
           onChange={(value) => onChange("differenceFromKorea", value)}
           placeholder="다르다고 느낀 점"

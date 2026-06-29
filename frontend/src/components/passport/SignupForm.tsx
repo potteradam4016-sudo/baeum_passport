@@ -3,7 +3,7 @@
 import { UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { loadState, saveState } from "@/lib/storage";
+import { signup } from "@/lib/api/auth";
 
 export function SignupForm() {
   const router = useRouter();
@@ -21,22 +21,9 @@ export function SignupForm() {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const fullName = `${form.lastName}${form.firstName}`.trim() || "배움이";
-    const state = loadState();
-    saveState({
-      ...state,
-      user: {
-        id: `${form.birthDate.replaceAll("-", "") || "student"}${fullName}`,
-        name: fullName,
-        grade: form.grade,
-        classNumber: form.classNumber,
-        studentNumber: form.studentNumber,
-        birthDate: form.birthDate,
-        gender: form.gender,
-      },
-    });
+    await signup(form);
     router.push("/worldmap");
   }
 

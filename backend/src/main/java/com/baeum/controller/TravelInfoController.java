@@ -1,7 +1,11 @@
 package com.baeum.controller;
 
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,9 +30,19 @@ public class TravelInfoController {
         this.travelInfoService = travelInfoService;
     }
 
+    @GetMapping
+    public ResponseEntity<List<TravelInfoDto>> getAllTravelInfo() {
+        return ResponseEntity.ok(travelInfoService.getAllTravelInfo());
+    }
+
     @GetMapping("/{countryId}")
     public ResponseEntity<TravelInfoDto> getTravelInfo(@PathVariable Long countryId) {
         return ResponseEntity.ok(travelInfoService.getTravelInfo(countryId));
+    }
+
+    @GetMapping("/country/{countryName}")
+    public ResponseEntity<TravelInfoDto> getTravelInfoByCountryName(@PathVariable String countryName) {
+        return ResponseEntity.ok(travelInfoService.getTravelInfoByCountryName(countryName));
     }
 
     @PostMapping
@@ -43,5 +57,18 @@ public class TravelInfoController {
             @PathVariable Long countryId,
             @RequestBody TravelInfoRequestDto request) {
         return ResponseEntity.ok(travelInfoService.updateTravelInfo(countryId, request));
+    }
+
+    @PatchMapping("/country/{countryName}")
+    public ResponseEntity<TravelInfoDto> updateTravelInfoByCountryName(
+            @PathVariable String countryName,
+            @RequestBody TravelInfoRequestDto request) {
+        return ResponseEntity.ok(travelInfoService.updateTravelInfoByCountryName(countryName, request));
+    }
+
+    @DeleteMapping("/country/{countryName}")
+    public ResponseEntity<Map<String, String>> deleteTravelInfoByCountryName(@PathVariable String countryName) {
+        travelInfoService.deleteTravelInfoByCountryName(countryName);
+        return ResponseEntity.ok(Map.of("message", "Travel info deleted."));
     }
 }

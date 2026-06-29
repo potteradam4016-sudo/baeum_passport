@@ -14,23 +14,44 @@ public class WorkbookDto {
     @JsonProperty("country_id")
     private Long countryId;
 
-    private String overview;
+    private String capital;
+    private String language;
+    private String population;
+    private String area;
 
-    @JsonProperty("map_note")
-    private String mapNote;
+    @JsonProperty("population_comparison")
+    private String populationComparison;
 
-    @JsonProperty("flag_note")
-    private String flagNote;
+    @JsonProperty("area_comparison")
+    private String areaComparison;
 
-    @JsonProperty("traditional_clothing")
-    private String traditionalClothing;
+    @JsonProperty("flag_image")
+    private String flagImage;
 
-    @JsonProperty("traditional_food")
-    private String traditionalFood;
+    @JsonProperty("map_image")
+    private String mapImage;
 
-    @JsonProperty("traditional_house")
-    private String traditionalHouse;
+    @JsonProperty("flag_observation")
+    private String flagObservation;
 
+    private String continent;
+
+    @JsonProperty("map_location")
+    private String mapLocation;
+
+    private String greeting;
+
+    @JsonProperty("research_topic")
+    private String researchTopic;
+
+    @JsonProperty("similarity_with_korea")
+    private String similarityWithKorea;
+
+    @JsonProperty("difference_from_korea")
+    private String differenceFromKorea;
+
+    private String question;
+    private String sources;
     private Integer completed;
 
     @JsonProperty("completed_at")
