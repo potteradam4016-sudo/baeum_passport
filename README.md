@@ -1,34 +1,342 @@
-# Baeum Passport
+백엔드: 스프링부트
 
-This repository is organized as a monorepo with separate frontend and backend workspaces.
+프론트엔드: Next.js
 
-## Structure
+DB: PostgreSQL
 
-```text
-baeum_passport/
-├── frontend/   # Next.js app; source will be merged from the frontend branch
-├── backend/    # Spring Boot API
-├── docs/       # analysis and merge planning documents
-├── README.md
-└── .gitignore
-```
 
-## Backend
 
-```powershell
-cd backend
-.\gradlew.bat build
-```
 
-The backend runs on port `4000` by default. Database connection values are configured in `backend/src/main/resources/application.properties`.
 
-## Frontend
 
-The current working tree does not include the Next.js source files. After merging the `frontend` branch, run frontend commands from the `frontend/` directory:
 
-```powershell
-cd frontend
-npm install
-npm run build
-npm run lint
-```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+백엔드
+
+
+
+여권 정보 입력 (회원가입)			/signup
+
+학년, 반, 번호, 성, 이름, 생년월일, 성별
+
+
+
+로그인			/login			/logout
+
+ID: 생년월일 + 성명		ex) 20031029신현욱
+
+PW: 생년월일				ex) 20031029
+
+
+
+
+
+
+
+사진 업로드
+
+사진 삭제
+
+
+
+
+
+
+
+
+
+대륙 정보는 프론트로 입력
+
+국가별 정보는 백엔드 기능 구현
+
+
+
+
+
+
+
+
+
+
+
+
+
+로그인 -> ‘세계 지도’ 페이지
+
+‘세계 지도’ 페이지 -> ‘대표 국가 정보’ 페이지
+
+&#x09;	     ->
+
+&#x09;		
+
+‘세계 지도’ 사이드탭 	-> ‘세계 여행’ 탭
+
+&#x09;		
+
+‘방문 국가’ 사이트탭에서 + 버튼 클릭시 여행 국가 정보페이지로 이동
+
+
+
+
+
+
+
+
+
+
+
+
+
+대표국가 목록
+
+아시아 : (한국), 일본, 중국
+
+유럽 : 영국, 프랑스, 독일
+
+아프리카 : 이집트
+
+북미 : 미국, 멕시코
+
+남미 : 브라질
+
+오세 : 호주
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+세계지도 페이지	/worldmap
+
+대륙별 색 구분
+
+대륙 클릭 시 해당 대륙의 정보 전시
+
+ㄴ 인구 수, 면적, 국가 수, 대표 국가
+
+‘세계 여행’ 사이드 탭
+
+ㄴ 대표국가 리스트
+
+ㄴ 대표국가 중 하나 클릭 시 해당 국가의 ‘입국 심사’ 페이지로 이동
+
+‘방문 국가’ 사이드 탭
+
+ㄴ 대표국가 + 사용자 추가 국가
+
+ㄴ 입국 심사 통과 시 ‘방문 국가’ 사이드 탭에 해당 국가가 완료로 표시
+
+\+ 버튼 클릭 시 국가 추가 가능
+
+대표국가 클릭 시 해당 국가의 ‘학습지’ 페이지로 이동
+
+사용자가 추가한 국가 클릭 시 여행국가 정보 페이지로 이동
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+‘여행국가 정보’ 페이지	/travel\_info
+
+해당 국가의 국기이미지, 국가이름, 면적, 인구 수, 사용 언어, 수도, 소속대륙, 지도이미지
+
+사용자가 직접 내용 입력
+
+
+
+
+
+
+
+
+
+
+
+
+
+‘입국 심사’ 페이지	/immi
+
+입국 심사 컨셉으로 나라 인사 따라하기, 국기 색칠하기 중 선택
+
+인사 따라하기 (음성 인식 / 안 되면 타이핑으로 입력)
+
+국기 색칠하기 (국기 이미지와 백지 제공)
+
+심사 후 완료 버튼을 누르면 입국 심사 통과
+
+&#x20;
+
+
+
+
+
+
+
+
+
+
+
+
+
+‘대표국가 학습지’ 페이지		/workbook
+
+해당 국가의 간단한 개요와 지도 (수정 가능)
+
+국기, 전통 의상, 전통 음식 및 가옥
+
+학습지 작성 완료 시 ‘사증’ 페이지로 이동 후 학습지가 작성된 국가의 도장 자동 생성 (+ 버튼으로 새로 생성한 국가는 사증 생성 X)
+
+
+
+
+
+‘사증’ 페이지	/stamp
+
+학습지가 작성된 국가의 도장 나열
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+프론트엔드
+
+테마: 여권
+
+
+
+UI/UX 요구사항
+
+\- 전체 애플리케이션은 1920x1080 기준 Full Screen Dashboard 형태로 구현한다.
+
+\- 브라우저 전체 페이지(body)는 스크롤이 발생하지 않아야 한다.
+
+\- html, body, root layout은 height: 100vh로 고정한다.
+
+\- overflow: hidden을 기본으로 사용한다.
+
+\- 스크롤이 필요한 경우 특정 컴포넌트 내부에서만 허용한다.
+
+\- 예) 국가 목록, 학습지 내용, 방문 국가 목록
+
+\- 사용자는 페이지 이동 시 전체 화면이 흔들리거나 길게 내려가지 않아야 한다.
+
+웹사이트가 아니라 하나의 데스크톱 앱처럼 동작하며, 브라우저 전체 스크롤은 없고 필요한 목록 영역에서만 스크롤이 가능하도록 구현한다. 
+
+
+
+디자인 컨셉
+
+\- 실제 여권(Passport)을 모티브로 한 디자인
+
+\- 파란색 계열을 메인 컬러로 사용
+
+\- 도장(Stamp) 수집 요소 강조
+
+\- 종이 질감, 여권 내지 느낌 활용
+
+\- 국가 방문 기록을 여권에 찍히는 스탬프처럼 표현
+
+\- 교육용 서비스이므로 너무 화려하지 않고 깔끔한 디자인
+
+
+
+
+
+
+
+
+
+
+
+
+

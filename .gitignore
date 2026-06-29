@@ -1,4 +1,6 @@
 # Frontend
+node_modules/
+.next/
 frontend/node_modules/
 frontend/.next/
 frontend/out/
@@ -10,7 +12,6 @@ backend/uploads/
 
 # Local artifacts
 .gradle/
-.next/
 build/
 *.db
 !backend/world_travel.db

@@ -1,0 +1,100 @@
+export type User = {
+  id: string;
+  name: string;
+  grade?: string;
+  classNumber?: string;
+  studentNumber?: string;
+  birthDate?: string;
+  gender?: string;
+};
+
+export type TravelCountryInfo = {
+  countryName: string;
+  flagImage: string;
+  displayName: string;
+  area: string;
+  population: string;
+  language: string;
+  capital: string;
+  continent: string;
+  mapImage: string;
+  travelPurpose: string;
+  placesToVisit: string;
+  localPhrase: string;
+  travelTips: string;
+  landmark: string;
+  foodToTry: string;
+  packingList: string;
+  cautions: string;
+  weatherNote: string;
+  freeMemo: string;
+};
+
+export type WorkbookRecord = {
+  capital: string;
+  language: string;
+  population: string;
+  area: string;
+  populationComparison: string;
+  areaComparison: string;
+  flagImage: string;
+  mapImage: string;
+  flagObservation: string;
+  continent: string;
+  mapLocation: string;
+  greeting: string;
+  researchTopic: string;
+  similarityWithKorea: string;
+  differenceFromKorea: string;
+  question: string;
+  sources: string;
+};
+
+export type PassportState = {
+  user: User | null;
+  immigrationCompleted: string[];
+  workbookCompleted: string[];
+  addedCountries: string[];
+  travelInfo: Record<string, TravelCountryInfo>;
+  workbookNotes: Record<string, string>;
+  workbookRecords: Record<string, WorkbookRecord>;
+};
+
+const STORAGE_KEY = "baeum-passport-state";
+
+export const defaultState: PassportState = {
+  user: null,
+  immigrationCompleted: [],
+  workbookCompleted: [],
+  addedCountries: [],
+  travelInfo: {},
+  workbookNotes: {},
+  workbookRecords: {},
+};
+
+export function loadState(): PassportState {
+  if (typeof window === "undefined") return defaultState;
+
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState;
+    return { ...defaultState, ...JSON.parse(raw) };
+  } catch {
+    return defaultState;
+  }
+}
+
+export function saveState(state: PassportState) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+export function updateState(updater: (state: PassportState) => PassportState) {
+  const next = updater(loadState());
+  saveState(next);
+  return next;
+}
+
+export function addUnique(items: string[], value: string) {
+  return items.includes(value) ? items : [...items, value];
+}
