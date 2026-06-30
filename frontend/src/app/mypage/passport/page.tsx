@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { LogoutBookmark } from "@/components/passport/LogoutBookmark";
 import { getMe, type AuthUser } from "@/lib/api/auth";
+import { ApiError } from "@/lib/api/apiClient";
 import { getUserCountries, type UserCountryDto } from "@/lib/api/immigration";
 import { getStamps, type StampDto } from "@/lib/api/stamp";
 
@@ -20,16 +21,31 @@ export default function MyPassportPage() {
   useEffect(() => {
     let isMounted = true;
 
-    Promise.all([getMe(), getUserCountries(), getStamps()])
-      .then(([nextUser, nextUserCountries, nextStamps]) => {
+    getMe()
+      .then(async (nextUser) => {
+        const [nextUserCountries, nextStamps] = await Promise.all([
+          getUserCountries().catch((error) => {
+            console.error("Failed to load user countries.", error);
+            return [];
+          }),
+          getStamps().catch((error) => {
+            console.error("Failed to load stamps.", error);
+            return [];
+          }),
+        ]);
+
         if (!isMounted) return;
         setUser(nextUser);
         setUserCountries(nextUserCountries);
         setStamps(nextStamps);
       })
-      .catch(() => {
+      .catch((error) => {
         if (!isMounted) return;
-        router.push("/login");
+        if (error instanceof ApiError && error.status === 401) {
+          router.push("/login");
+          return;
+        }
+        console.error("Failed to load passport.", error);
       })
       .finally(() => {
         if (isMounted) setIsLoading(false);
